@@ -3,7 +3,10 @@ from unittest.mock import patch
 
 from pydantic import ValidationError
 
-from agents.conversation_agent import run_conversation_agent
+from agents.conversation_agent import (
+    build_conversation_agent_state,
+    run_conversation_agent,
+)
 from core.agentic_loop import JarvisBrain
 from core.runtime_state_manager import (
     RuntimeStateManager,
@@ -131,11 +134,13 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
             objective=runtime_state.objective,
         )
 
+        state = build_conversation_agent_state(handoff, runtime_state)
+
         with patch(
             "agents.conversation_agent.conversation_agent",
             StubConversationAgent(),
         ):
-            response = run_conversation_agent(handoff, runtime_state)
+            response = run_conversation_agent(state)
 
         self.assertEqual(response, "stub response")
         self.assertIs(captured_state["runtime_state"], runtime_state)
@@ -155,9 +160,10 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
                 ),
             )
 
-        def fake_conversation_agent(handoff, runtime_state):
+        def fake_conversation_agent(state):
+            runtime_state = state["runtime_state"]
             observed_handoffs.append(
-                (handoff.user_request, runtime_state.user_request)
+                (state["user_request"], runtime_state.user_request)
             )
             return "Runtime-aware response"
 

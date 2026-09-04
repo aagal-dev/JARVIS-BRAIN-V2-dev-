@@ -22,19 +22,13 @@ conversation_agent = BaseAgent(
 )
 
 
-def run_conversation_agent(
+def build_conversation_agent_state(
     conversation_agent_handoff_state: ConversationAgentHandoff,
-    runtime_state: RuntimeState | None = None,
-) -> str:
-    if runtime_state is None:
-        runtime_state = RuntimeState(
-            user_request=conversation_agent_handoff_state.user_request,
-            objective=conversation_agent_handoff_state.objective,
-        )
-
-    state: ConversationAgentState = {
-        "user_request": runtime_state.user_request,
-        "objective": runtime_state.objective,
+    runtime_state: RuntimeState,
+) -> ConversationAgentState:
+    return {
+        "user_request": conversation_agent_handoff_state.user_request,
+        "objective": conversation_agent_handoff_state.objective,
         "recent_conversations": [],
         "relevant_context": {
             "episodic_memory": [],
@@ -49,6 +43,8 @@ def run_conversation_agent(
         },
     }
 
+
+def run_conversation_agent(state: ConversationAgentState) -> str:
     response = conversation_agent.invoke(state)
 
     print(f"\nConversation Agent Response: \n{response.model_dump_json(indent=2)}\n")

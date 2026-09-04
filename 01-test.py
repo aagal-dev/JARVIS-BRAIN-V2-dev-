@@ -1,6 +1,7 @@
 from agents.conversation_agent import run_conversation_agent
 
 from schemas.conversation_agent import ConversationAgentState
+from schemas.runtime_state import RuntimeState
 
 user_input = """
 Okay, now lets plan what should be in the
@@ -10,6 +11,7 @@ state to the conversation_agent?
 
 state: ConversationAgentState = {
     "user_request": user_input,
+    "objective": "Generate a meaningful user-facing response to the current conversation.",
 
     "recent_conversations": [
         {
@@ -49,42 +51,10 @@ state: ConversationAgentState = {
         ],
     },
 
-    "runtime_state": {
-        "task": "Generate a meaningful user-facing response to the current conversation.",
-        "input": user_input,
-        "steps": [
-            {
-                "step": "Receive user request",
-                "status": "completed",
-            },
-            {
-                "step": "Process request through agentic loop",
-                "status": "completed",
-            },
-            {
-                "step": "Prepare context for Conversation Agent",
-                "status": "in_progress",
-            },
-            {
-                "step": "Generate final user-facing response",
-                "status": "pending",
-            },
-        ],
-        "recent_conversations": [
-            {
-                "role": "user",
-                "content": "I'm working on the Conversation Agent for Jarvis Brain v2."
-            },
-            {
-                "role": "assistant",
-                "content": "The Conversation Agent should receive a focused state containing the current request, recent conversation, retrieved context, runtime state, and execution context."
-            },
-            {
-                "role": "user",
-                "content": "Now I'm testing the Conversation Agent before the other subsystems are implemented."
-            },
-        ],
-    },
+    "runtime_state": RuntimeState(
+        user_request=user_input,
+        objective="Generate a meaningful user-facing response to the current conversation.",
+    ),
 
     "execution_context": {
         "actions": [
