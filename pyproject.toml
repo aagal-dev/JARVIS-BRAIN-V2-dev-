@@ -1,0 +1,12 @@
+[project]
+name = "jarvis-brain-v2"
+version = "0.1.0"
+description = "JARVIS Brain V2 agentic orchestration system"
+requires-python = ">=3.11"
+dependencies = [
+    "ollama>=0.4.7",
+    "pydantic>=2.10,<3",
+]
+
+[project.scripts]
+jarvis = "main:main"
