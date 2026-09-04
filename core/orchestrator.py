@@ -1,5 +1,6 @@
 from integrations.base_agent import BaseAgent
 from schemas.orchestrator_v2 import OrchestratorResult
+from schemas.runtime_state import RuntimeState
 from configs.settings import ORCHESTRATOR_PROMPT_PATH
 
 # Prompt 
@@ -12,10 +13,17 @@ orchestrator = BaseAgent(
 )
 
 
-def run_orchestrator(runtime_state: dict, available_components: dict) -> OrchestratorResult:
+def run_orchestrator(
+    runtime_state: RuntimeState | dict,
+    available_components: dict,
+) -> OrchestratorResult:
 
   state = {
-    "runtime_state": runtime_state,
+    "runtime_state": (
+        runtime_state.model_dump()
+        if isinstance(runtime_state, RuntimeState)
+        else RuntimeState.model_validate(runtime_state).model_dump()
+    ),
     "available_components": available_components
   }
   
