@@ -1,6 +1,10 @@
 from integrations.base_agent import BaseAgent
-from schemas.conversation_agent import ConversationAgentOutput
-from schemas.conversation_agent import ConversationAgentState
+from schemas.conversation_agent import (
+    ConversationAgentOutput,
+    ConversationAgentState,
+)
+from schemas.orchestrator_v2 import ConversationAgentHandoff
+from schemas.runtime_state import RuntimeState
 from configs.settings import CONVERSATION_AGENT_PROMPT_PATH
 
 
@@ -20,35 +24,38 @@ conversation_agent = BaseAgent(
 )
 
 
-def run_conversation_agent(conversation_agent_handoff_state: dict) -> ConversationAgentOutput:
-
-  
-    state: ConversationAgentState = {
-    "user_request": conversation_agent_handoff_state.user_request,
-    "objective": conversation_agent_handoff_state.objective,
-    "recent_conversations": [],
-    "relevant_context": {
-        "episodic_memory": [],
-        "chat_archives": [],
-        "learned_knowledge": [],
-    },
-    "runtime_state": {
-        "task": "",
-        "input": conversation_agent_handoff_state.user_request,
-        "steps": [],
+def build_conversation_agent_state(
+    conversation_agent_handoff_state: ConversationAgentHandoff,
+    runtime_state: RuntimeState,
+) -> ConversationAgentState:
+    return {
+        "user_request": conversation_agent_handoff_state.user_request,
+        "objective": conversation_agent_handoff_state.objective,
         "recent_conversations": [],
-    },
-    "execution_context": {
-        "actions": [],
-        "results": [],
-        "failures": [],
-     }
+        "relevant_context": {
+            "episodic_memory": [],
+            "chat_archives": [],
+            "learned_knowledge": [],
+        },
+        "runtime_state": runtime_state,
+        "execution_context": {
+            "actions": [],
+            "results": [],
+            "failures": [],
+        },
     }
-  
+
+
+def run_conversation_agent(
+    state: ConversationAgentState,
+) -> ConversationAgentOutput:
     response = conversation_agent.invoke(state)
 
-    print(f"\nConversation Agent Response: \n{response.model_dump_json(indent=2)}\n")
-  
+    print(
+        f"\nConversation Agent Response: "
+        f"\n{response.model_dump_json(indent=2)}\n"
+    )
+
     if response.error:
         raise ConversationAgentError(response.error)
 
@@ -57,4 +64,4 @@ def run_conversation_agent(conversation_agent_handoff_state: dict) -> Conversati
             response.response or "Conversation agent returned an error."
         )
 
-    return response.response
+    return response

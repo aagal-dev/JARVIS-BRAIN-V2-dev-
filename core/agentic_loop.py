@@ -1,13 +1,16 @@
 from typing import Any, Callable
 
+from agents.conversation_agent import (
+    build_conversation_agent_state,
+    run_conversation_agent,
+)
 from core.orchestrator import run_orchestrator
 from core.registry.available_components import AVAILABLE_COMPONENTS
 from core.runtime_state_manager import RuntimeStateManager
+from schemas.conversation_agent import ConversationAgentState
 from schemas.jarvis_brain_result import JarvisBrainResult
-from schemas.orchestrator_v2 import ConversationAgentHandoff, OrchestratorResult
+from schemas.orchestrator_v2 import OrchestratorResult
 from schemas.runtime_state import RuntimeState
-
-from agents.conversation_agent import run_conversation_agent
 
 
 class JarvisBrain:
@@ -19,15 +22,12 @@ class JarvisBrain:
         ] = run_orchestrator,
         max_steps: int = 5,
         runtime_state_manager: RuntimeStateManager | None = None,
-        conversation_agent: Callable[
-            [ConversationAgentHandoff, RuntimeState], str
-        ] = run_conversation_agent,
+        conversation_agent: Callable[[ConversationAgentState], str] = run_conversation_agent,
     ):
         self.orchestrator = orchestrator
         self.available_components = AVAILABLE_COMPONENTS
         self.runtime_state_manager = runtime_state_manager or RuntimeStateManager()
         self.conversation_agent = conversation_agent
-        self._execution_state: dict[str, Any] = {}
         self.max_steps = max_steps
         self.step = 0
         self.workflow_complete = False
@@ -46,13 +46,12 @@ class JarvisBrain:
             )
 
         runtime_state = self.runtime_state_manager.create(user_request=user_request)
-        self._execution_state = {}
         self.step = 0
         self.workflow_complete = False
+        last_decision: OrchestratorResult | None = None
 
         while not self.workflow_complete and self.step < self.max_steps:
             self.step += 1
-            self._execution_state["orchestration_step"] = self.step
 
             try:
                 decision = self.orchestrator(
@@ -69,7 +68,7 @@ class JarvisBrain:
                 )
 
             print(f"\nORCHESTRATOR DECISION: \n{decision.model_dump_json(indent=2)}\n")
-        
+
             # EDGE CASES & EXCEPTIONS
             if not isinstance(decision, OrchestratorResult):
                 self.workflow_complete = True
@@ -79,7 +78,6 @@ class JarvisBrain:
                     state=runtime_state.model_dump(),
                 )
 
-
             if decision.error:
                 self.workflow_complete = True
                 return JarvisBrainResult(
@@ -88,15 +86,18 @@ class JarvisBrain:
                     state=runtime_state.model_dump(),
                 )
 
-            self._execution_state["orchestrator_result"] = decision.model_dump()
+            last_decision = decision
 
             if decision.next_step == "respond":
                 print("\n[JARVIS BRAIN] CONVERSATION AGENT")
                 print("Context:", decision.conversation_agent_handoff)
 
+                conversation_agent_state = build_conversation_agent_state(
+                    conversation_agent_handoff_state=decision.conversation_agent_handoff,
+                    runtime_state=runtime_state,
+                )
                 conversation_agent_response = self.conversation_agent(
-                    decision.conversation_agent_handoff,
-                    runtime_state,
+                    conversation_agent_state,
                 )
 
                 self.workflow_complete = True
@@ -124,15 +125,11 @@ class JarvisBrain:
                         f"\nProvided Goal: {action.input.goal}"
                     )
 
-                self._execution_state["last_actions"] = [
-                    action.model_dump() for action in decision.actions
-                ]
-
         self.workflow_complete = True
 
         return JarvisBrainResult(
             status="partial",
-            output=self._execution_state.get("orchestrator_result"),
+            output=last_decision.model_dump() if last_decision else None,
             error="Maximum workflow steps reached before completion.",
             state=runtime_state.model_dump(),
         )

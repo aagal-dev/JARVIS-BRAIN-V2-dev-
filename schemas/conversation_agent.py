@@ -2,6 +2,8 @@ from typing import Literal, Optional, Any, TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from schemas.runtime_state import RuntimeState
+
 # ----------------------------------------
 #       CONVERSATION AGENT OUTPUT
 # ----------------------------------------
@@ -39,13 +41,6 @@ class ConversationAgentOutput(BaseModel):
 class ConversationMessage(TypedDict):
     role: str
     content: str
-
-
-class RuntimeState(TypedDict):
-    task: str
-    input: Any
-    steps: list[dict[str, Any]]
-    recent_conversations: list[ConversationMessage]
 
 
 class RelevantContext(TypedDict):
