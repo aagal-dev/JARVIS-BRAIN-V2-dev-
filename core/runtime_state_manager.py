@@ -112,6 +112,15 @@ class RuntimeStateManager:
         self._completed = False
         return self.get()
 
+    def update_step_result(self, step_id: str, result: str | None) -> RuntimeState:
+        """Attach the grounded outcome of a step without changing its status."""
+        state = self._require_state()
+        step = self._find_step(step_id)
+        step.result = result
+        self._state = state
+        self._completed = False
+        return self.get()
+
     def complete(self) -> RuntimeState:
         state = self._require_state()
         if state.current_step_id is not None:

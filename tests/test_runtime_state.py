@@ -8,6 +8,7 @@ from agents.conversation_agent import (
     run_conversation_agent,
 )
 from core.agentic_loop import JarvisBrain
+from core.orchestrator import run_orchestrator
 from core.runtime_state_manager import (
     RuntimeStateManager,
     RuntimeStateNotInitializedError,
@@ -33,6 +34,7 @@ class RuntimeStateModelTests(unittest.TestCase):
                     {
                         "id": "step-001",
                         "step": "Collect notes",
+                        "result": None,
                         "status": "pending",
                     }
                 ],
@@ -87,9 +89,16 @@ class RuntimeStateManagerTests(unittest.TestCase):
         self.assertEqual(active.current_step_id, "step-001")
         self.assertEqual(active.steps[0].status, "in_progress")
 
+        with_result = manager.update_step_result(
+            "step-001",
+            "Collected three notes.",
+        )
+        self.assertEqual(with_result.steps[0].result, "Collected three notes.")
+
         completed = manager.update_step_status("step-001", "completed")
         self.assertIsNone(completed.current_step_id)
         self.assertEqual(completed.steps[0].status, "completed")
+        self.assertEqual(completed.steps[0].result, "Collected three notes.")
 
         active = manager.set_current_step("step-002")
         self.assertEqual(active.current_step_id, "step-002")
@@ -111,6 +120,37 @@ class RuntimeStateManagerTests(unittest.TestCase):
 
 
 class BrainRuntimeIntegrationTests(unittest.TestCase):
+    def test_orchestrator_receives_step_results_in_runtime_state(self) -> None:
+        captured_state = {}
+
+        class StubOrchestrator:
+            def invoke(self, state):
+                captured_state.update(state)
+                return OrchestratorResult(
+                    next_step="stop",
+                )
+
+        runtime_state = RuntimeState(
+            user_request="Research the topic",
+            objective="Research the topic",
+            steps=[
+                RuntimeStep(
+                    id="step-001",
+                    step="Gather sources",
+                    status="completed",
+                    result="Found two relevant sources.",
+                )
+            ],
+        )
+
+        with patch("core.orchestrator.orchestrator", StubOrchestrator()):
+            run_orchestrator(runtime_state, available_components={})
+
+        self.assertEqual(
+            captured_state["runtime_state"]["steps"][0]["result"],
+            "Found two relevant sources.",
+        )
+
     def test_conversation_agent_receives_locked_runtime_state(self) -> None:
         captured_state = {}
 
@@ -127,7 +167,13 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
         runtime_state = RuntimeState(
             user_request="Summarize this",
             objective="Summarize this clearly",
-            steps=[RuntimeStep(id="step-001", step="Summarize")],
+            steps=[
+                RuntimeStep(
+                    id="step-001",
+                    step="Summarize",
+                    result="The source contains three key points.",
+                )
+            ],
         )
         handoff = ConversationAgentHandoff(
             user_request=runtime_state.user_request,
@@ -145,6 +191,10 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
         self.assertEqual(response, "stub response")
         self.assertIs(captured_state["runtime_state"], runtime_state)
         self.assertEqual(captured_state["objective"], "Summarize this clearly")
+        self.assertEqual(
+            captured_state["runtime_state"].steps[0].result,
+            "The source contains three key points.",
+        )
 
     def test_runtime_state_is_created_and_fused_into_workflow(self) -> None:
         observed_runtime_states: list[dict] = []

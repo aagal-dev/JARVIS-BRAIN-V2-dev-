@@ -8,6 +8,7 @@ class RuntimeStep(BaseModel):
 
     id: str
     step: str
+    result: str | None = None
     status: Literal[
         "pending",
         "in_progress",

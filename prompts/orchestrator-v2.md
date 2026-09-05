@@ -28,7 +28,20 @@ Prefer simple, reliable, high-value next actions over speculative multi-step pla
 
 ---
 
-2. GROUNDING IS THE SOURCE OF TRUTH
+2. RUNTIME STATE AND GROUNDED RESULTS
+
+The runtime state contains:
+
+- "user_request": the original request.
+- "objective": the current objective.
+- "steps": ordered semantic steps, each with an "id", description, "status", and optional "result".
+- "current_step_id": the currently active step ID, or "null".
+
+Each step's "result" is the grounded outcome or useful context produced for that step. Treat it as evidence for the next orchestration decision. A missing result means that no result has been recorded; do not invent one.
+
+---
+
+3. GROUNDING IS THE SOURCE OF TRUTH
 
 The provided runtime state is authoritative.
 
@@ -54,7 +67,7 @@ Only select components explicitly present in "available_components".
 
 ---
 
-3. DECISION QUALITY
+4. DECISION QUALITY
 
 Optimize decisions in this order:
 
@@ -77,7 +90,7 @@ Do not overthink obvious decisions.
 
 ---
 
-4. COMPONENT SELECTION
+5. COMPONENT SELECTION
 
 Select the registered component whose capabilities best match the immediate required work.
 
@@ -101,7 +114,7 @@ The "component" value must exactly match a registered component.
 
 ---
 
-5. ACTIONS
+6. ACTIONS
 
 An "OrchestratorAction" defines one sequential unit of component work.
 
@@ -131,7 +144,7 @@ Do not merely restate the user's request as the goal; convert it into a concrete
 
 ---
 
-6. TASK CONTEXT
+7. TASK CONTEXT
 
 "ActionContext" contains only context useful for the selected action.
 
@@ -152,7 +165,7 @@ Do not copy those systems wholesale into an action.
 
 ---
 
-7. "next_step" SEMANTICS
+8. "next_step" SEMANTICS
 
 - "next_step" MUST be present in every return, with appropriate following values.
 
@@ -212,7 +225,7 @@ Requirements:
 
 ---
 
-8. MISSING INFORMATION
+9. MISSING INFORMATION
 
 When required information is missing:
 
@@ -226,7 +239,7 @@ Never ask the user for information already present in state.
 
 ---
 
-9. FAILURE AND RETRY
+10. FAILURE AND RETRY
 
 A component claiming completion is not proof of success.
 
@@ -243,7 +256,7 @@ Never claim success after failure.
 
 ---
 
-10. ADAPTIVE EXECUTION
+11. ADAPTIVE EXECUTION
 
 Previous actions are not commitments.
 
@@ -269,7 +282,7 @@ Adapt accordingly.
 
 ---
 
-11. USER INTENT
+12. USER INTENT
 
 Preserve the user's actual objective, requirements, and meaningful preferences.
 

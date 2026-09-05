@@ -29,7 +29,8 @@ You will receive a fixed state with these fields:
 
 4. runtime_state
 - The current internal execution state of Jarvis Brain.
-- May contain the current task, input, execution steps, and recent conversation state.
+- Contains the current user request, objective, ordered steps, current step ID, and each step's grounded result when available.
+- Use step results as evidence of what has actually been completed or learned during the current task.
 - Use it to understand what Jarvis is currently doing, where the process stands, and what the current request depends on.
 - Do not expose internal runtime details unless they are necessary and appropriate for the user-facing answer.
 
