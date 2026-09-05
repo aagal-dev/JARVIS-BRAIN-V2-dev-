@@ -53,6 +53,8 @@ class JarvisBrain:
         while not self.workflow_complete and self.step < self.max_steps:
             self.step += 1
 
+            print(f"\nRUNTIME STATE: \n{runtime_state.model_dump_json(indent=2)}")
+            
             try:
                 decision = self.orchestrator(
                     runtime_state=runtime_state.model_dump(),
@@ -102,6 +104,7 @@ class JarvisBrain:
 
                 self.workflow_complete = True
                 runtime_state = self.runtime_state_manager.complete()
+                
                 return JarvisBrainResult(
                     status="success",
                     output=conversation_agent_response,

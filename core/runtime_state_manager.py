@@ -35,7 +35,7 @@ class RuntimeStateManager:
         ]
         self._state = RuntimeState(
             user_request=user_request,
-            objective=objective if objective is not None else user_request,
+            objective=objective if objective is not None else "No objective decleared.",
             steps=runtime_steps,
             current_step_id=current_step_id,
         )

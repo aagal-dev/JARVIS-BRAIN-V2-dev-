@@ -30,7 +30,7 @@ def build_conversation_agent_state(
 ) -> ConversationAgentState:
     return {
         "user_request": conversation_agent_handoff_state.user_request,
-        "objective": conversation_agent_handoff_state.objective,
+        "next_suggested_action": conversation_agent_handoff_state.objective,
         "recent_conversations": [],
         "relevant_context": {
             "episodic_memory": [],
