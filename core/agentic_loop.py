@@ -4,13 +4,15 @@ from agents.conversation_agent import (
     build_conversation_agent_state,
     run_conversation_agent,
 )
+from agents.planner import build_planner_state, run_planner
 from core.orchestrator import run_orchestrator
 from core.registry.available_components import AVAILABLE_COMPONENTS
 from core.runtime_state_manager import RuntimeStateManager
 from schemas.conversation_agent import ConversationAgentState
 from schemas.jarvis_brain_result import JarvisBrainResult
 from schemas.orchestrator_v2 import OrchestratorResult
-from schemas.runtime_state import RuntimeState
+from schemas.planner import PlannerResult, PlannerState
+from schemas.runtime_state import RuntimeState, RuntimeStep
 
 
 class JarvisBrain:
@@ -23,11 +25,13 @@ class JarvisBrain:
         max_steps: int = 5,
         runtime_state_manager: RuntimeStateManager | None = None,
         conversation_agent: Callable[[ConversationAgentState], str] = run_conversation_agent,
+        planner: Callable[[PlannerState], PlannerResult] = run_planner,
     ):
         self.orchestrator = orchestrator
         self.available_components = AVAILABLE_COMPONENTS
         self.runtime_state_manager = runtime_state_manager or RuntimeStateManager()
         self.conversation_agent = conversation_agent
+        self.planner = planner
         self.max_steps = max_steps
         self.step = 0
         self.workflow_complete = False
@@ -45,7 +49,66 @@ class JarvisBrain:
                 state={},
             )
 
-        runtime_state = self.runtime_state_manager.create(user_request=user_request)
+        planner_state = build_planner_state(
+            user_request=user_request,
+            available_components=self.available_components,
+        )
+
+        try:
+            plan = self.planner(planner_state)
+        except Exception as exc:
+            self.workflow_complete = True
+            return JarvisBrainResult(
+                status="failed",
+                error=f"Planner failure: {str(exc)[:2000]}",
+                state={},
+            )
+
+        if not isinstance(plan, PlannerResult):
+            self.workflow_complete = True
+            return JarvisBrainResult(
+                status="failed",
+                error="Planner returned an unexpected response type.",
+                state={},
+            )
+
+        if plan.error:
+            self.workflow_complete = True
+            return JarvisBrainResult(
+                status="failed",
+                error=plan.error,
+                state={},
+            )
+
+        if not plan.objective.strip():
+            self.workflow_complete = True
+            return JarvisBrainResult(
+                status="failed",
+                error="Planner returned an empty objective.",
+                state={},
+            )
+
+        try:
+            runtime_state = self.runtime_state_manager.create(
+                user_request=user_request,
+                objective=plan.objective,
+                steps=[
+                    RuntimeStep(
+                        id=step.id,
+                        step=step.step,
+                        status=step.status,
+                    )
+                    for step in plan.steps
+                ],
+            )
+        except Exception as exc:
+            self.workflow_complete = True
+            return JarvisBrainResult(
+                status="failed",
+                error=f"Runtime State initialization failed: {str(exc)[:2000]}",
+                state={},
+            )
+
         self.step = 0
         self.workflow_complete = False
         last_decision: OrchestratorResult | None = None
