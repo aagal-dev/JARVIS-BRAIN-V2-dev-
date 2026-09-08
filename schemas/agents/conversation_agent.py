@@ -2,7 +2,7 @@ from typing import Literal, Optional, Any, TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from schemas.runtime_state import RuntimeState
+from schemas.system.runtime_state import RuntimeState
 
 # ----------------------------------------
 #       CONVERSATION AGENT OUTPUT

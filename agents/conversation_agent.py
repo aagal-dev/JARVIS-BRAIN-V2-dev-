@@ -1,12 +1,13 @@
 from integrations.base_agent import BaseAgent
-from schemas.conversation_agent import (
+from schemas.agents.conversation_agent import (
     ConversationAgentOutput,
     ConversationAgentState,
 )
-from schemas.orchestrator_v2 import ConversationAgentHandoff
-from schemas.runtime_state import RuntimeState
+from schemas.orchestrator.orchestrator_v2 import ConversationAgentHandoff
+from schemas.system.runtime_state import RuntimeState
 from configs.settings import CONVERSATION_AGENT_PROMPT_PATH
 
+from threaded_services.registered_services import service_state_store
 
 class ConversationAgentError(RuntimeError):
     """Raised when the conversation agent fails to execute."""
@@ -28,6 +29,11 @@ def build_conversation_agent_state(
     conversation_agent_handoff_state: ConversationAgentHandoff,
     runtime_state: RuntimeState,
 ) -> ConversationAgentState:
+
+    snapshot = service_state_store.snapshot()["time"]
+
+    service_state = snapshot.model_dump()
+  
     return {
         "user_request": conversation_agent_handoff_state.user_request,
         "next_suggested_action": conversation_agent_handoff_state.objective,
@@ -43,6 +49,9 @@ def build_conversation_agent_state(
             "results": [],
             "failures": [],
         },
+        "environmemt": {
+          "time_and_celender": service_state
+        }
     }
 
 

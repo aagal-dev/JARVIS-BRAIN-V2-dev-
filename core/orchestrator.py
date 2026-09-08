@@ -1,5 +1,5 @@
 from integrations.base_agent import BaseAgent
-from schemas.orchestrator_v2 import OrchestratorResult
+from schemas.orchestrator.orchestrator_v2 import OrchestratorResult
 from configs.settings import ORCHESTRATOR_PROMPT_PATH
 
 # Prompt 

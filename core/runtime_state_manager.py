@@ -1,7 +1,7 @@
 from collections.abc import Mapping, Sequence
 from typing import Any, Literal
 
-from schemas.runtime_state import RuntimeState, RuntimeStep
+from schemas.system.runtime_state import RuntimeState, RuntimeStep
 
 
 RuntimeStepStatus = Literal["pending", "in_progress", "completed"]

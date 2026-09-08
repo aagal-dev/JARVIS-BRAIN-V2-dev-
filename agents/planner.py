@@ -1,5 +1,5 @@
 from integrations.base_agent import BaseAgent
-from schemas.planner import PlannerResult, PlannerState
+from schemas.agents.planner import PlannerResult, PlannerState
 from configs.settings import PLANNER_PROMPT_PATH
 
 
