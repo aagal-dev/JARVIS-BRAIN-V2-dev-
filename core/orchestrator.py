@@ -1,10 +1,6 @@
 from integrations.base_agent import BaseAgent
-<<<<<<< HEAD
 from schemas.orchestrator.orchestrator_v2 import OrchestratorResult
-=======
-from schemas.orchestrator_v2 import OrchestratorResult
-from schemas.runtime_state import RuntimeState
->>>>>>> 7cf52db (Implement episodic memory module and integrate with agent runtime)
+from schemas.system.runtime_state import RuntimeState
 from configs.settings import ORCHESTRATOR_PROMPT_PATH
 
 # Prompt 
@@ -30,10 +26,10 @@ def run_orchestrator(
     ),
     "available_components": available_components
   }
-  
+
   response = orchestrator.invoke(state)
 
   if response.error:
     raise TypeError(f"Orchestrator execution failed: {response.error}")
-    
+
   return response

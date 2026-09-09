@@ -8,27 +8,17 @@ from agents.planner import build_planner_state, run_planner
 from core.orchestrator import run_orchestrator
 from core.registry.available_components import AVAILABLE_COMPONENTS
 from core.runtime_state_manager import RuntimeStateManager
-<<<<<<< HEAD
+from memory.episodic.service import (
+    EpisodicConsolidationResult,
+    EpisodicMemoryService,
+)
+from schemas.agents.conversation_agent import ConversationAgentOutput
+from schemas.episodic_memory import ChatHistoryMessage
 from schemas.agents.conversation_agent import ConversationAgentState
 from schemas.system.jarvis_brain_result import JarvisBrainResult
 from schemas.orchestrator.orchestrator_v2 import OrchestratorResult
 from schemas.agents.planner import PlannerResult, PlannerState
 from schemas.system.runtime_state import RuntimeState, RuntimeStep
-=======
-from memory.episodic.service import (
-    EpisodicConsolidationResult,
-    EpisodicMemoryService,
-)
-from schemas.conversation_agent import (
-    ConversationAgentOutput,
-    ConversationAgentState,
-)
-from schemas.jarvis_brain_result import JarvisBrainResult
-from schemas.orchestrator_v2 import OrchestratorResult
-from schemas.planner import PlannerResult, PlannerState
-from schemas.runtime_state import RuntimeState, RuntimeStep
-from schemas.episodic_memory import ChatHistoryMessage
->>>>>>> 7cf52db (Implement episodic memory module and integrate with agent runtime)
 
 from threaded_services.registered_services import service_manager
 
@@ -76,24 +66,17 @@ class JarvisBrain:
                 state={},
             )
 
-<<<<<<< HEAD
+          self.chat_history.append(
+              {
+                  "role": "user",
+                  "content": user_request,
+              }
+          )
+
           planner_state = build_planner_state(
              user_request=user_request,
              available_components=self.available_components,
           )
-=======
-        self.chat_history.append(
-            {
-                "role": "user",
-                "content": user_request,
-            }
-        )
-
-        planner_state = build_planner_state(
-            user_request=user_request,
-            available_components=self.available_components,
-        )
->>>>>>> 7cf52db (Implement episodic memory module and integrate with agent runtime)
 
           try:
              plan = self.planner(planner_state)
@@ -229,17 +212,14 @@ class JarvisBrain:
   
                 self.workflow_complete = True
                 runtime_state = self.runtime_state_manager.complete()
-<<<<<<< HEAD
-                  
-=======
+
                 self.chat_history.append(
                     {
                         "role": "assistant",
-                        "content": conversation_agent_response.response,
+                        "content": conversation_agent_response.response or "",
                     }
                 )
-                
->>>>>>> 7cf52db (Implement episodic memory module and integrate with agent runtime)
+
                 return JarvisBrainResult(
                     status="success",
                     output=conversation_agent_response,
@@ -272,19 +252,9 @@ class JarvisBrain:
               state=runtime_state.model_dump(),
           )
 
-<<<<<<< HEAD
         finally:
           # stopping all threaded services
           service_manager.stop_all()
-=======
-        self.workflow_complete = True
-
-        return JarvisBrainResult(
-            status="partial",
-            output=last_decision.model_dump() if last_decision else None,
-            error="Maximum workflow steps reached before completion.",
-            state=runtime_state.model_dump(),
-        )
 
     def end_session(self) -> EpisodicConsolidationResult:
         """Consolidate the temporary chat history once the session ends."""
@@ -292,4 +262,3 @@ class JarvisBrain:
         if result.error is None:
             self.chat_history.clear()
         return result
->>>>>>> 7cf52db (Implement episodic memory module and integrate with agent runtime)
