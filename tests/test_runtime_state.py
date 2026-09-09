@@ -14,6 +14,8 @@ from core.runtime_state_manager import (
     RuntimeStateNotInitializedError,
 )
 from schemas.orchestrator_v2 import ConversationAgentHandoff, OrchestratorResult
+from schemas.planner import PlannerResult
+from schemas.conversation_agent import ConversationAgentOutput
 from schemas.runtime_state import RuntimeState, RuntimeStep
 
 
@@ -188,7 +190,7 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
         ):
             response = run_conversation_agent(state)
 
-        self.assertEqual(response, "stub response")
+        self.assertEqual(response.response, "stub response")
         self.assertIs(captured_state["runtime_state"], runtime_state)
         self.assertEqual(captured_state["objective"], "Summarize this clearly")
         self.assertEqual(
@@ -215,16 +217,23 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
             observed_handoffs.append(
                 (state["user_request"], runtime_state.user_request)
             )
-            return "Runtime-aware response"
+            return ConversationAgentOutput(
+                response="Runtime-aware response",
+                response_type="answer",
+            )
+
+        def fake_planner(state):
+            return PlannerResult(objective="Explain the runtime state")
 
         brain = JarvisBrain(
             orchestrator=fake_orchestrator,
             conversation_agent=fake_conversation_agent,
+            planner=fake_planner,
         )
         result = brain.run("Explain the runtime state")
 
         self.assertEqual(result.status, "success")
-        self.assertEqual(result.output, "Runtime-aware response")
+        self.assertEqual(result.output.response, "Runtime-aware response")
         self.assertEqual(
             result.state,
             {
@@ -258,7 +267,13 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
                 error="Orchestrator unavailable",
             )
 
-        brain = JarvisBrain(orchestrator=failing_orchestrator)
+        def fake_planner(state):
+            return PlannerResult(objective="Try the workflow")
+
+        brain = JarvisBrain(
+            orchestrator=failing_orchestrator,
+            planner=fake_planner,
+        )
         result = brain.run("Try the workflow")
 
         self.assertEqual(result.status, "failed")

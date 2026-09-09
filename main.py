@@ -10,6 +10,9 @@ def main():
       user = input("\n[ Ask to Jarvis ]: ")
 
       if user.lower() == "quit":
+        memory_result = brain.end_session()
+        if memory_result.error:
+          print(f"\nEpisodic memory error: {memory_result.error}")
         break 
 
       if not user:

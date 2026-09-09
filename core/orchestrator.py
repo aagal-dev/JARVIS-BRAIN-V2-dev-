@@ -1,5 +1,10 @@
 from integrations.base_agent import BaseAgent
+<<<<<<< HEAD
 from schemas.orchestrator.orchestrator_v2 import OrchestratorResult
+=======
+from schemas.orchestrator_v2 import OrchestratorResult
+from schemas.runtime_state import RuntimeState
+>>>>>>> 7cf52db (Implement episodic memory module and integrate with agent runtime)
 from configs.settings import ORCHESTRATOR_PROMPT_PATH
 
 # Prompt 
@@ -12,10 +17,17 @@ orchestrator = BaseAgent(
 )
 
 
-def run_orchestrator(runtime_state: dict, available_components: dict) -> OrchestratorResult:
+def run_orchestrator(
+  runtime_state: RuntimeState | dict,
+  available_components: dict,
+) -> OrchestratorResult:
 
   state = {
-    "runtime_state": runtime_state,
+    "runtime_state": (
+      runtime_state.model_dump()
+      if isinstance(runtime_state, RuntimeState)
+      else RuntimeState.model_validate(runtime_state).model_dump()
+    ),
     "available_components": available_components
   }
   
