@@ -50,6 +50,7 @@ class EpisodicMemoryService:
             return EpisodicConsolidationResult(error=extraction.error)
 
         if not extraction.should_create:
+            print("\nNo episode creation needed.")
             return EpisodicConsolidationResult()
 
         records: list[EpisodeRecord] = []

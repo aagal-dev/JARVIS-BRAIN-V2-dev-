@@ -1,0 +1,25 @@
+[
+  {
+    "id": "80de0040-e076-4822-b7af-738f41332579",
+    "timestamp": "2026-09-09T11:53:10.049845Z",
+    "action": "create",
+    "target_id": null,
+    "episode": {
+      "type": "project_initiation",
+      "summary": "User announced the start of a new AI automation business.",
+      "state": "User had no existing AI automation venture mentioned before this session.",
+      "change": "Initiated a new business focused on AI-driven automation solutions.",
+      "outcome": null,
+      "learned_lesson": null,
+      "importance": 0.7,
+      "confidence": 0.95,
+      "tags": [
+        "AI automation",
+        "business",
+        "entrepreneurship",
+        "project"
+      ],
+      "related": []
+    }
+  }
+]
