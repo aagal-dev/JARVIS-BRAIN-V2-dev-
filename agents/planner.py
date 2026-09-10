@@ -1,5 +1,9 @@
 from integrations.base_agent import BaseAgent
-from schemas.agents.planner import PlannerResult, PlannerState
+from schemas.agents.planner import (
+    PlannerRelevantContext,
+    PlannerResult,
+    PlannerState,
+)
 from configs.settings import PLANNER_PROMPT_PATH
 
 
@@ -14,17 +18,21 @@ planner_agent = BaseAgent(
 def build_planner_state(
     user_request: str,
     available_components: dict[str, object],
+    recent_conversations: list[dict[str, str]] | None = None,
+    relevant_context: PlannerRelevantContext | None = None,
+    retrieval_errors: list[str] | None = None,
 ) -> PlannerState:
     return {
         "user_request": user_request,
-        "recent_conversations": [],
-        "relevant_context": {
+        "recent_conversations": list(recent_conversations or []),
+        "relevant_context": relevant_context or {
             "episodic_memory": [],
             "chat_archives": [],
             "learned_knowledge": [],
         },
         "environment_context": {},
         "available_components": available_components,
+        "retrieval_errors": list(retrieval_errors or []),
     }
 
 

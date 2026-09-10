@@ -13,6 +13,8 @@ def main():
         memory_result = brain.end_session()
         if memory_result.error:
           print(f"\nEpisodic memory error: {memory_result.error}")
+        for indexing_error in memory_result.indexing_errors:
+          print(f"\nEpisodic memory indexing warning: {indexing_error}")
         break 
 
       if not user:

@@ -9,6 +9,8 @@ PLANNER_PROMPT_PATH = BASE_DIR / "prompts" / "planner-v1.md"
 EPISODIC_MEMORY_PROMPT_PATH = (
     BASE_DIR / "prompts" / "episodic-memory-creator-v1.md"
 )
+VOYAGE_MODEL = "voyage-4-lite"
+QDRANT_COLLECTION = "jarvis_episodic_memory"
 
 
 

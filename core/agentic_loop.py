@@ -12,9 +12,11 @@ from memory.episodic.service import (
     EpisodicConsolidationResult,
     EpisodicMemoryService,
 )
+from memory.retrieval import MemoryRetrieval
 from schemas.agents.conversation_agent import ConversationAgentOutput
 from schemas.episodic_memory import ChatHistoryMessage
 from schemas.agents.conversation_agent import ConversationAgentState
+from schemas.memory_retrieval import MemoryRetrievalResult
 from schemas.system.jarvis_brain_result import JarvisBrainResult
 from schemas.orchestrator.orchestrator_v2 import OrchestratorResult
 from schemas.agents.planner import PlannerResult, PlannerState
@@ -36,13 +38,22 @@ class JarvisBrain:
         ] = run_conversation_agent,
         planner: Callable[[PlannerState], PlannerResult] = run_planner,
         episodic_memory: EpisodicMemoryService | None = None,
+        memory_retrieval: MemoryRetrieval | None = None,
     ):
         self.orchestrator = orchestrator
         self.available_components = AVAILABLE_COMPONENTS
         self.runtime_state_manager = runtime_state_manager or RuntimeStateManager()
         self.conversation_agent = conversation_agent
         self.planner = planner
-        self.episodic_memory = episodic_memory or EpisodicMemoryService()
+        self.episodic_memory = episodic_memory or EpisodicMemoryService(
+            retrieval=memory_retrieval,
+        )
+        if memory_retrieval is not None:
+            self.episodic_memory.retrieval = memory_retrieval
+        self.memory_retrieval = (
+            memory_retrieval or self.episodic_memory.retrieval
+        )
+        self.last_memory_retrieval: MemoryRetrievalResult | None = None
         self.chat_history: list[ChatHistoryMessage] = []
         self.max_steps = max_steps
         self.step = 0
@@ -73,9 +84,32 @@ class JarvisBrain:
               }
           )
 
+          try:
+            self.last_memory_retrieval = self.memory_retrieval.retrieve(
+                user_request
+            )
+          except Exception as exc:
+            self.last_memory_retrieval = MemoryRetrievalResult(
+                query=user_request,
+                error=f"Memory retrieval failed: {str(exc)[:2000]}",
+            )
+
+          retrieved_context = {
+            "episodic_memory": self.last_memory_retrieval.as_context(),
+            "chat_archives": [],
+            "learned_knowledge": [],
+          }
+
           planner_state = build_planner_state(
              user_request=user_request,
              available_components=self.available_components,
+              recent_conversations=self.chat_history[:-1],
+              relevant_context=retrieved_context,
+              retrieval_errors=(
+                  [self.last_memory_retrieval.error]
+                  if self.last_memory_retrieval.error
+                  else []
+              ),
           )
 
           try:
@@ -205,6 +239,8 @@ class JarvisBrain:
                 conversation_agent_state = build_conversation_agent_state(
                   conversation_agent_handoff_state=decision.conversation_agent_handoff,
                   runtime_state=runtime_state,
+                  recent_conversations=self.chat_history[:-1],
+                  relevant_context=retrieved_context,
                 )
                 conversation_agent_response = self.conversation_agent(
                   conversation_agent_state,

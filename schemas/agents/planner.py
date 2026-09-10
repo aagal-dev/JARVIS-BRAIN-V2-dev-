@@ -42,3 +42,4 @@ class PlannerState(TypedDict):
     relevant_context: PlannerRelevantContext
     environment_context: dict[str, Any]
     available_components: dict[str, Any]
+    retrieval_errors: list[str]

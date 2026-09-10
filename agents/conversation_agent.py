@@ -28,6 +28,8 @@ conversation_agent = BaseAgent(
 def build_conversation_agent_state(
     conversation_agent_handoff_state: ConversationAgentHandoff,
     runtime_state: RuntimeState,
+    relevant_context: dict[str, list[dict]] | None = None,
+    recent_conversations: list[dict[str, str]] | None = None,
 ) -> ConversationAgentState:
 
     snapshot = service_state_store.snapshot()["time"]
@@ -37,8 +39,8 @@ def build_conversation_agent_state(
     return {
         "user_request": conversation_agent_handoff_state.user_request,
         "objective": conversation_agent_handoff_state.objective,
-        "recent_conversations": [],
-        "relevant_context": {
+        "recent_conversations": list(recent_conversations or []),
+        "relevant_context": relevant_context or {
             "episodic_memory": [],
             "chat_archives": [],
             "learned_knowledge": [],
