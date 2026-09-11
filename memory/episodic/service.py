@@ -63,6 +63,7 @@ class EpisodicMemoryService:
             for episode in extraction.episodes:
                 record = self.store.create(episode, timestamp=timestamp)
                 records.append(record)
+                # Embedding the episode.summary
                 indexing_error = self.retrieval.index_record(record)
                 if indexing_error:
                     indexing_errors.append(indexing_error)

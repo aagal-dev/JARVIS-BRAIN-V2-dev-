@@ -6,6 +6,9 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class QdrantClientError(RuntimeError):
     """Raised when the Qdrant retrieval boundary cannot complete a request."""

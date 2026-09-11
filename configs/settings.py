@@ -5,12 +5,12 @@ BASE_DIR = Path("./")
 
 ORCHESTRATOR_PROMPT_PATH = BASE_DIR / "prompts" / "orchestrator-v2.md"
 CONVERSATION_AGENT_PROMPT_PATH = BASE_DIR / "prompts" / "agents" / "conversation-agent-v1.md"
-PLANNER_PROMPT_PATH = BASE_DIR / "prompts" / "planner-v1.md"
+PLANNER_PROMPT_PATH = BASE_DIR / "prompts" / "planner-v2.md"
 EPISODIC_MEMORY_PROMPT_PATH = (
     BASE_DIR / "prompts" / "episodic-memory-creator-v1.md"
 )
+
+
 VOYAGE_MODEL = "voyage-4-lite"
 QDRANT_COLLECTION = "jarvis_episodic_memory"
-
-
 

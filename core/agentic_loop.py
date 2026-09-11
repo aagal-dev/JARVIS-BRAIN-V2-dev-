@@ -85,9 +85,12 @@ class JarvisBrain:
           )
 
           try:
+            # Retrieving relavent context
             self.last_memory_retrieval = self.memory_retrieval.retrieve(
                 user_request
             )
+
+            print(self.last_memory_retrieval)
           except Exception as exc:
             self.last_memory_retrieval = MemoryRetrievalResult(
                 query=user_request,
@@ -99,6 +102,8 @@ class JarvisBrain:
             "chat_archives": [],
             "learned_knowledge": [],
           }
+
+          print(f"\nRetrieved Context: \n{retrieved_context}")
 
           planner_state = build_planner_state(
              user_request=user_request,

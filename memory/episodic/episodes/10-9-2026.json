@@ -1,0 +1,28 @@
+[
+  {
+    "id": "f6542711-0a8c-435d-9600-c7cb581d25ac",
+    "timestamp": "2026-09-10T11:30:29.919049Z",
+    "action": "create",
+    "target_id": null,
+    "episode": {
+      "type": "project_update",
+      "summary": "User initiated a redesign of the \"Jarvis Brain v2\" system and reported that the planner, orchestrator, episodic memory component, and retrieval layer have been completed.",
+      "state": "User announced the start of a new project: a redesigned version of Jarvis Brain v2, and was prompted to provide vision, goals, and success criteria.",
+      "change": "Implemented core architecture components: planner, orchestrator, episodic memory, and retrieval layer.",
+      "outcome": "These four components are now built and integrated into the redesign effort.",
+      "learned_lesson": null,
+      "importance": 0.8,
+      "confidence": 1.0,
+      "tags": [
+        "Jarvis Brain v2",
+        "project redesign",
+        "progress",
+        "planner",
+        "orchestrator",
+        "episodic memory",
+        "retrieval layer"
+      ],
+      "related": []
+    }
+  }
+]

@@ -18,6 +18,7 @@ class PlannerStep(BaseModel):
 class PlannerResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    #mode: Literal["direct", "planned"]
     objective: str = ""
     steps: list[PlannerStep] = Field(default_factory=list)
     error: Optional[str] = None

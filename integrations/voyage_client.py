@@ -5,6 +5,9 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class VoyageClientError(RuntimeError):
     """Raised when the Voyage embedding boundary cannot complete a request."""

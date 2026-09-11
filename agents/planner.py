@@ -1,5 +1,5 @@
 from integrations.base_agent import BaseAgent
-from schemas.agents.planner import (
+from schemas.agents.planner_v2 import (
     PlannerRelevantContext,
     PlannerResult,
     PlannerState,
