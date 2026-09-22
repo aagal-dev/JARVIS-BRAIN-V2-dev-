@@ -223,7 +223,7 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
             )
 
         def fake_planner(state):
-            return PlannerResult(objective="Explain the runtime state")
+            return PlannerResult(mode="planned", objective="Explain the runtime state", steps=[{"id": "step-1", "step": "test", "status": "pending"}])
 
         brain = JarvisBrain(
             orchestrator=fake_orchestrator,
@@ -239,7 +239,14 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
             {
                 "user_request": "Explain the runtime state",
                 "objective": "Explain the runtime state",
-                "steps": [],
+                "steps": [
+                    {
+                        "id": "step-1",
+                        "step": "test",
+                        "result": None,
+                        "status": "completed",
+                    }
+                ],
                 "current_step_id": None,
             },
         )
@@ -249,8 +256,15 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
                 {
                     "user_request": "Explain the runtime state",
                     "objective": "Explain the runtime state",
-                    "steps": [],
-                    "current_step_id": None,
+                    "steps": [
+                        {
+                            "id": "step-1",
+                            "step": "test",
+                            "result": None,
+                            "status": "in_progress",
+                        }
+                    ],
+                    "current_step_id": "step-1",
                 }
             ],
         )
@@ -268,7 +282,7 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
             )
 
         def fake_planner(state):
-            return PlannerResult(objective="Try the workflow")
+            return PlannerResult(mode="planned", objective="Try the workflow", steps=[{"id": "step-1", "step": "test", "status": "pending"}])
 
         brain = JarvisBrain(
             orchestrator=failing_orchestrator,

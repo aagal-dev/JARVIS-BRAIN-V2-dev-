@@ -29,8 +29,8 @@ def main():
 
     if response.status == "success":
       print(
-        f"\nJarvis Response: \n{response.output}"
-        f"\nRuntime State: \n{response.state}"
+        f"\nJarvis Response: \n{response.output.response}\n"
+        f"\nLast Runtime State: \n{response.state}"
       )
 
     else:

@@ -142,7 +142,7 @@ class EpisodicBrainIntegrationTests(unittest.TestCase):
             )
 
             def planner(state):
-                return PlannerResult(objective="Answer the request")
+                return PlannerResult(mode="planned", objective="Answer the request", steps=[])
 
             def orchestrator(runtime_state, available_components):
                 return OrchestratorResult(
@@ -173,7 +173,7 @@ class EpisodicBrainIntegrationTests(unittest.TestCase):
 
             self.assertIsNone(result.error)
             self.assertTrue(result.created_any)
-            self.assertEqual(len(creator.history), 2)
+            self.assertEqual(len(creator.history), 1)
             self.assertEqual(brain.chat_history, [])
 
 

@@ -19,7 +19,7 @@ from schemas.agents.conversation_agent import ConversationAgentState
 from schemas.memory_retrieval import MemoryRetrievalResult
 from schemas.system.jarvis_brain_result import JarvisBrainResult
 from schemas.orchestrator.orchestrator_v2 import OrchestratorResult
-from schemas.agents.planner_v2 import PlannerResult, PlannerState
+from schemas.agents.planner import PlannerResult, PlannerState
 from schemas.system.runtime_state import RuntimeState, RuntimeStep
 
 from threaded_services.registered_services import service_manager
@@ -119,8 +119,6 @@ class JarvisBrain:
 
           try:
              plan = self.planner(planner_state)
-
-             print(f"\nPLANNER RESPONSE:\n{plan.model_dump_json(indent=2)}")
           except Exception as exc:
              self.workflow_complete = True
              return JarvisBrainResult(
@@ -146,67 +144,37 @@ class JarvisBrain:
                 state={},
              )
 
-          if plan.mode not in {"direct", "planned"}:
+          if not plan.objective.strip():
+             self.workflow_complete = True
+             return JarvisBrainResult(
+                status="failed",
+                error="Planner returned an empty objective.",
+                state={},
+             )
+
+
+          print(f"\nPLAN PROPOSED:\n{plan}")
+
+          try:
+            runtime_state = self.runtime_state_manager.create(
+                user_request=user_request,
+                objective=plan.objective,
+                steps=[
+                    RuntimeStep(
+                        id=step.id,
+                        step=step.step,
+                        status=step.status,
+                    )
+                    for step in plan.steps
+                ],
+            )
+          except Exception as exc:
             self.workflow_complete = True
             return JarvisBrainResult(
-              status="failed",
-              error=f"Planner returned invalid mode: {plan.mode}",
-              state={},
-            )
-            
-          # when the direct response
-          if plan.mode == "direct":
-
-            try:
-              # runtime with only user_request
-              runtime_state = self.runtime_state_manager.create(
-                  user_request=user_request
-              )
-            except Exception as exc:
-              self.workflow_complete = True
-              return JarvisBrainResult(
-                  status="failed",
-                  error=f"Runtime State initialization failed: {str(exc)[:2000]}",
-                  state={},
-              )
-
-            print("\nruntime state updated with user_request only")
-
-          # when multi-step iteration needed
-          if plan.mode == "planned":
-            if not plan.objective.strip():
-               self.workflow_complete = True
-               return JarvisBrainResult(
-                  status="failed",
-                  error="Planner returned an empty objective.",
-                  state={},
-               )
-          
-            print(f"\nPLAN PROPOSED:\n{plan}")
-
-            try:
-              runtime_state = self.runtime_state_manager.create(
-                  user_request=user_request,
-                  objective=plan.objective,
-                  steps=[
-                      RuntimeStep(
-                          id=step.id,
-                          step=step.step,
-                          status=step.status,
-                      )
-                      for step in plan.steps
-                  ],
-              )
-            except Exception as exc:
-              self.workflow_complete = True
-              return JarvisBrainResult(
                 status="failed",
                 error=f"Runtime State initialization failed: {str(exc)[:2000]}",
                 state={},
-              )
-
-            print("\nruntime state updated with user_request, plan")
-
+            )
 
           self.step = 0
           self.workflow_complete = False

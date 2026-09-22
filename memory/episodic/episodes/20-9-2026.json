@@ -1,0 +1,26 @@
+[
+  {
+    "id": "5da29dc3-5b20-4210-89e0-98e46f30cc2a",
+    "timestamp": "2026-09-20T17:03:27.332707Z",
+    "action": "create",
+    "target_id": null,
+    "episode": {
+      "type": "family_health_event",
+      "summary": "User's grandmother suffered a stroke two days ago and is currently admitted at Parumala Hospital stroke ICU; she was moved to a regular room yesterday. The user's cousin sister and her mother are at the hospital as bystanders, while the user, their parents, and cousin sister are at home, trying to relax together.",
+      "state": "User's family is dealing with a recent stroke event; multiple family members are present at the hospital and at home.",
+      "change": "Grandmother's condition progressed from ICU to a regular hospital room; family members' locations and involvement were updated.",
+      "outcome": "Grandmother remains hospitalized; user and cousin sister are taking a moment to relax at home.",
+      "learned_lesson": null,
+      "importance": 0.7,
+      "confidence": 0.96,
+      "tags": [
+        "stroke",
+        "hospital",
+        "family",
+        "health_event",
+        "emotional_support"
+      ],
+      "related": []
+    }
+  }
+]

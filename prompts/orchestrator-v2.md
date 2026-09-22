@@ -150,7 +150,7 @@ Do not merely restate the user's request as the goal; convert it into a concrete
 
 - "as_of": relevant date/time when the task is time-sensitive; otherwise "null".
 - "conversation_summary": concise task-relevant conversation context.
-- "relevant_prior_context": relevant prior facts, findings, decisions, or information.
+- "relevant_prior_context": a LIST of relevant prior facts, findings, decisions, or information. MUST be a JSON array of strings, even if empty [].
 
 The runtime owns broader context such as:
 

@@ -1,0 +1,60 @@
+[
+  {
+    "id": "5a6466f7-b71e-4658-8a7b-2799806581e2",
+    "timestamp": "2026-09-22T08:31:38.694379Z",
+    "action": "create",
+    "target_id": null,
+    "episode": {
+      "type": "business_direction",
+      "summary": "User changed business direction from operating an AI automation agency to founding an AI company that creates and sells its own AI products.",
+      "state": "Previously focused on an AI automation agency that built automation solutions for customers.",
+      "change": "Shifted focus to an owned\u2011product AI company model.",
+      "outcome": null,
+      "learned_lesson": null,
+      "importance": 0.9,
+      "confidence": 0.98,
+      "tags": [
+        "business strategy",
+        "company direction",
+        "AI products"
+      ],
+      "related": [],
+      "event_time": null,
+      "evidence": [
+        {
+          "role": "user",
+          "content": "I've been thinking about my business direction again, and I don't think I want to build an AI automation agency anymore. I'm changing the plan: instead of mainly doing automation for customers, I want to build an actual AI company that creates and sells its own AI products. The automation stuff was useful for learning and validating ideas, but I think I want the company to focus on building products that we can own and scale. Please treat this as my new business direction going forward."
+        }
+      ]
+    }
+  },
+  {
+    "id": "fcce49f3-06d8-447f-94d0-8d9e8b418362",
+    "timestamp": "2026-09-22T08:31:43.702050Z",
+    "action": "create",
+    "target_id": null,
+    "episode": {
+      "type": "product_decision",
+      "summary": "User decided the first product of the new AI company will be an AI operating system\u2014a highly customizable, voice\u2011driven interface that manages a user's digital environment, including computer use, internet interaction, personal memory, preferences, and future device integration.",
+      "state": null,
+      "change": "Defined the first major product as an AI operating system.",
+      "outcome": null,
+      "learned_lesson": null,
+      "importance": 0.85,
+      "confidence": 0.97,
+      "tags": [
+        "product planning",
+        "AI operating system",
+        "first product"
+      ],
+      "related": [],
+      "event_time": null,
+      "evidence": [
+        {
+          "role": "user",
+          "content": "I've decided what I want the first product of the new AI company to be. I want to build an AI operating system \u2014 basically a highly customizable AI system that can become the main interface for a user's digital environment. The long-term idea is for it to handle things like computer use, internet interaction, personal memory and preferences, voice interaction, and eventually connect with other devices and services. This is going to be the first major product I'm building under the new AI company direction."
+        }
+      ]
+    }
+  }
+]

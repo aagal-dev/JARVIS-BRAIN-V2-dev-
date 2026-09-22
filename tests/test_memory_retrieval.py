@@ -12,7 +12,7 @@ from memory.episodic.service import EpisodicMemoryService
 from memory.episodic.storage import EpisodicMemoryStore
 from memory.retrieval import MemoryRetrieval
 from schemas.agents.conversation_agent import ConversationAgentOutput
-from schemas.agents.planner import PlannerResult
+from schemas.agents.planner_v2 import PlannerResult
 from schemas.episodic_memory import (
     EpisodeRecord,
     EpisodicCreatorResult,
@@ -244,7 +244,7 @@ class RetrievalWorkflowTests(unittest.TestCase):
 
         def planner(state):
             planner_states.append(state)
-            return PlannerResult(objective="Answer with relevant prior context")
+            return PlannerResult(mode="planned", objective="Answer with relevant prior context", steps=[{"id": "step-1", "step": "test", "status": "pending"}])
 
         def orchestrator(runtime_state, available_components):
             return OrchestratorResult(

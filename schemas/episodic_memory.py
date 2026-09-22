@@ -27,6 +27,8 @@ class EpisodicEpisode(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     tags: list[str] = Field(default_factory=list)
     related: list[str] = Field(default_factory=list)
+    event_time: str | None = None
+    evidence: list[dict[str, Any]] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_summary(self) -> "EpisodicEpisode":

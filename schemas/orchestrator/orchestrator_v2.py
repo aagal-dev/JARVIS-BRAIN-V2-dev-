@@ -127,7 +127,8 @@ class ConversationAgentHandoff(BaseModel):
 class OrchestratorResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    next_step: OrchestratorNextStep = Field(
+    next_step: Optional[OrchestratorNextStep] = Field(
+        default=None,
         description=(
             "The single best next workflow transition: execute component work, "
             "respond through the Conversation Agent, or terminate/suspend."
@@ -159,6 +160,11 @@ class OrchestratorResult(BaseModel):
 
     @model_validator(mode="after")
     def validate_transition(self):
+        if self.next_step is None:
+            if self.error is None:
+                raise ValueError("next_step is required unless an error is provided.")
+            return self
+
         if self.next_step == OrchestratorNextStep.EXECUTE:
             if not self.actions:
                 raise ValueError(
