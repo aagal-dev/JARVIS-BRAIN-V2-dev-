@@ -92,7 +92,7 @@ EPISODE FIELDS
 - tags: useful topic/category labels
 - related: a LIST of related episode IDs (strings) when known, otherwise []. MUST be a JSON array of strings.
 - event_time: normalized event date/time/range when supported
-- evidence: source message references supporting the episode
+- evidence: a JSON array of source message references supporting the episode; use strings only, never message objects (for example, "user: <relevant message>" or "user_message_2")
 - action: "create" | "update" | "delete" (default: "create")
 - target_id: existing episode ID for update/delete, otherwise null
 

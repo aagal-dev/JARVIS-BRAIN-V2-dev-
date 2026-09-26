@@ -34,6 +34,24 @@ def make_episode(summary: str = "The project reached a useful milestone.") -> Ep
 
 
 class EpisodicSchemaTests(unittest.TestCase):
+    def test_message_shaped_evidence_is_normalized_to_strings(self) -> None:
+        episode = EpisodicEpisode.model_validate(
+            {
+                **make_episode().model_dump(),
+                "evidence": [
+                    {
+                        "role": "user",
+                        "content": "We chose the existing architecture.",
+                    }
+                ],
+            }
+        )
+
+        self.assertEqual(
+            episode.evidence,
+            ["user: We chose the existing architecture."],
+        )
+
     def test_episode_record_lifecycle_rules(self) -> None:
         episode = make_episode()
         create = EpisodeRecord(

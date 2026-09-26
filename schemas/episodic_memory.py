@@ -32,6 +32,36 @@ class EpisodicEpisode(BaseModel):
     action: Literal["create", "update", "delete"] = "create"
     target_id: str | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_evidence(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+
+        evidence = value.get("evidence")
+        if not isinstance(evidence, list):
+            return value
+
+        normalized: list[Any] = []
+        changed = False
+        for item in evidence:
+            if isinstance(item, dict) and isinstance(item.get("content"), str):
+                role = item.get("role")
+                if isinstance(role, str) and role.strip():
+                    normalized.append(f"{role}: {item['content']}")
+                else:
+                    normalized.append(item["content"])
+                changed = True
+            else:
+                normalized.append(item)
+
+        if not changed:
+            return value
+
+        normalized_value = dict(value)
+        normalized_value["evidence"] = normalized
+        return normalized_value
+
     @model_validator(mode="after")
     def validate_summary(self) -> "EpisodicEpisode":
         if self.action != "delete" and not self.summary.strip():

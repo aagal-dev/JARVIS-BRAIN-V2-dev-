@@ -103,6 +103,59 @@ class StubCreator:
 
 
 class MemoryRetrievalTests(unittest.TestCase):
+    def test_fallback_retrieval_reads_legacy_message_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = EpisodicMemoryStore(Path(directory))
+            path = Path(directory) / "09-9-2026.json"
+            path.write_text(
+                json.dumps(
+                    [
+                        {
+                            "id": "legacy-episode",
+                            "timestamp": TIMESTAMP.isoformat(),
+                            "action": "create",
+                            "target_id": None,
+                            "episode": {
+                                "type": "project",
+                                "summary": "The legacy episode is retrievable.",
+                                "state": None,
+                                "change": None,
+                                "outcome": None,
+                                "learned_lesson": None,
+                                "importance": 0.8,
+                                "confidence": 0.9,
+                                "tags": ["legacy"],
+                                "related": [],
+                                "event_time": None,
+                                "evidence": [
+                                    {
+                                        "role": "user",
+                                        "content": "Keep this episode available.",
+                                    }
+                                ],
+                                "action": "create",
+                                "target_id": None,
+                            },
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            retrieval = MemoryRetrieval(
+                cohere_client=FakeCohere(),
+                qdrant_client=QdrantClient(),
+                store=store,
+            )
+            result = retrieval.retrieve("hey")
+
+        self.assertIsNone(result.error)
+        self.assertEqual([item.id for item in result.results], ["legacy-episode"])
+        self.assertEqual(
+            result.results[0].episode.evidence,
+            ["user: Keep this episode available."],
+        )
+
     def test_hybrid_results_map_back_to_canonical_episodes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = EpisodicMemoryStore(Path(directory))
