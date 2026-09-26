@@ -22,10 +22,12 @@ class EpisodicMemoryCreator:
     def create(
         self,
         chat_history: list[ChatHistoryMessage],
+        relevant_context: dict[str, list[dict[str, Any]]] | None = None,
     ) -> EpisodicCreatorResult:
         state: EpisodicMemoryCreatorState = {
             "chat_history": chat_history,
-            "relevant_context": {
+            "relevant_context": relevant_context
+            or {
                 "episodic_memory": [],
                 "semantic_memory": [],
                 "procedural_memory": [],

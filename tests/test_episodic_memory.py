@@ -95,9 +95,11 @@ class StubCreator:
     def __init__(self, result: EpisodicCreatorResult):
         self.result = result
         self.history = None
+        self.relevant_context = None
 
-    def create(self, chat_history):
+    def create(self, chat_history, relevant_context=None):
         self.history = chat_history
+        self.relevant_context = relevant_context
         return self.result
 
 

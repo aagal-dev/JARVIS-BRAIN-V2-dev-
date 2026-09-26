@@ -1,7 +1,7 @@
 from typing import Any
 
 from integrations.qdrant_client import QdrantClient
-from integrations.voyage_client import VoyageClient
+from integrations.cohere_client import CohereClient
 from memory.episodic.storage import EpisodicMemoryStore
 from schemas.episodic_memory import EpisodeRecord
 from schemas.memory_retrieval import (
@@ -15,11 +15,11 @@ class MemoryRetrieval:
 
     def __init__(
         self,
-        voyage_client: VoyageClient | None = None,
+        cohere_client: CohereClient | None = None,
         qdrant_client: QdrantClient | None = None,
         store: EpisodicMemoryStore | None = None,
     ) -> None:
-        self.voyage = voyage_client or VoyageClient()
+        self.cohere = cohere_client or CohereClient(output_dimensions=1024)
         self.qdrant = qdrant_client or QdrantClient()
         self.store = store or EpisodicMemoryStore()
 
@@ -40,8 +40,15 @@ class MemoryRetrieval:
                 error="Memory retrieval limit must be positive.",
             )
 
+        # If the Qdrant client is not configured (e.g., missing environment variables),
+        # fall back to a simple in‑memory dense‑vector search using the fallback helper.
+        if isinstance(self.qdrant, QdrantClient) and not getattr(self.qdrant, "url", None):
+            from memory.episodic.fallback_search import FallbackRetriever
+            fallback = FallbackRetriever(self.cohere, self.store)
+            return fallback.search(query, limit)
+
         try:
-            dense_vector = self.voyage.embed_query(query)
+            dense_vector = self.cohere.embed_query(query)
             points = self.qdrant.hybrid_search(
                 query=query,
                 dense_vector=dense_vector,
@@ -84,7 +91,7 @@ class MemoryRetrieval:
             if record.episode is None:
                 return "Episode indexing skipped because the payload is missing."
 
-            dense_vector = self.voyage.embed_document(record.episode.summary)
+            dense_vector = self.cohere.embed_document(record.episode.summary)
             self.qdrant.upsert_episode(
                 episode_id=target_id,
                 summary=record.episode.summary,
@@ -106,6 +113,9 @@ class MemoryRetrieval:
             if error:
                 errors.append(error)
         return errors
+
+
+
 
     @staticmethod
     def _point_id(point: dict[str, Any]) -> str | None:

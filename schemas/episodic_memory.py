@@ -28,11 +28,13 @@ class EpisodicEpisode(BaseModel):
     tags: list[str] = Field(default_factory=list)
     related: list[str] = Field(default_factory=list)
     event_time: str | None = None
-    evidence: list[dict[str, Any]] = Field(default_factory=list)
+    evidence: list[str] = Field(default_factory=list)
+    action: Literal["create", "update", "delete"] = "create"
+    target_id: str | None = None
 
     @model_validator(mode="after")
     def validate_summary(self) -> "EpisodicEpisode":
-        if not self.summary.strip():
+        if self.action != "delete" and not self.summary.strip():
             raise ValueError("Episode summary must not be empty.")
         return self
 
@@ -43,14 +45,6 @@ class EpisodicCreatorResult(BaseModel):
     should_create: bool = False
     episodes: list[EpisodicEpisode] = Field(default_factory=list)
     error: Optional[str] = None
-
-    @model_validator(mode="after")
-    def validate_decision(self) -> "EpisodicCreatorResult":
-        if not self.should_create and self.episodes:
-            raise ValueError(
-                "A non-memory-worthy session must not contain episodes."
-            )
-        return self
 
 
 class EpisodeRecord(BaseModel):

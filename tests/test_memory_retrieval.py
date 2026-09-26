@@ -1,13 +1,16 @@
 import json
+import os
 import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
+import httpx
+
 from core.agentic_loop import JarvisBrain
+from integrations.cohere_client import CohereClient, CohereClientError
 from integrations.qdrant_client import QdrantClient
-from integrations.voyage_client import VoyageClient
 from memory.episodic.service import EpisodicMemoryService
 from memory.episodic.storage import EpisodicMemoryStore
 from memory.retrieval import MemoryRetrieval
@@ -44,7 +47,7 @@ def make_episode(summary: str) -> EpisodicEpisode:
     )
 
 
-class FakeVoyage:
+class FakeCohere:
     def __init__(self, query_vector=None, document_vector=None, error=None):
         self.query_vector = query_vector or [0.1, 0.2]
         self.document_vector = document_vector or [0.3, 0.4]
@@ -92,7 +95,7 @@ class StubCreator:
     def __init__(self, episodes):
         self.episodes = episodes
 
-    def create(self, chat_history):
+    def create(self, chat_history, relevant_context=None):
         return EpisodicCreatorResult(
             should_create=bool(self.episodes),
             episodes=self.episodes,
@@ -107,7 +110,7 @@ class MemoryRetrievalTests(unittest.TestCase):
                 make_episode("The architecture decision is important."),
                 timestamp=TIMESTAMP,
             )
-            voyage = FakeVoyage()
+            cohere = FakeCohere()
             qdrant = FakeQdrant(
                 points=[
                     {
@@ -121,7 +124,7 @@ class MemoryRetrievalTests(unittest.TestCase):
                 ]
             )
             retrieval = MemoryRetrieval(
-                voyage_client=voyage,
+                cohere_client=cohere,
                 qdrant_client=qdrant,
                 store=store,
             )
@@ -135,11 +138,11 @@ class MemoryRetrievalTests(unittest.TestCase):
                 "The architecture decision is important.",
             )
             self.assertEqual(qdrant.hybrid_queries[0]["query"], result.query)
-            self.assertEqual(voyage.queries, [result.query])
+            self.assertEqual(cohere.queries, [result.query])
 
     def test_retrieval_errors_are_explicit_and_do_not_fabricate_results(self) -> None:
         retrieval = MemoryRetrieval(
-            voyage_client=FakeVoyage(error="Voyage unavailable"),
+            cohere_client=FakeCohere(error="Cohere unavailable"),
             qdrant_client=FakeQdrant(),
             store=EpisodicMemoryStore(tempfile.mkdtemp()),
         )
@@ -147,7 +150,7 @@ class MemoryRetrievalTests(unittest.TestCase):
         result = retrieval.retrieve("Find the earlier decision")
 
         self.assertEqual(result.results, [])
-        self.assertIn("Voyage unavailable", result.error)
+        self.assertIn("Cohere unavailable", result.error)
 
     def test_rebuild_uses_current_canonical_state(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -167,9 +170,9 @@ class MemoryRetrievalTests(unittest.TestCase):
             )
             store.delete(second.id, timestamp=TIMESTAMP)
 
-            voyage = FakeVoyage()
+            cohere = FakeCohere()
             qdrant = FakeQdrant()
-            retrieval = MemoryRetrieval(voyage, qdrant, store)
+            retrieval = MemoryRetrieval(cohere, qdrant, store)
 
             errors = retrieval.rebuild_index()
 
@@ -291,40 +294,155 @@ class RetrievalWorkflowTests(unittest.TestCase):
 
 
 class HttpBoundaryTests(unittest.TestCase):
-    def test_voyage_client_parses_embeddings_and_sends_model(self) -> None:
+    def test_cohere_client_uses_distinct_document_and_query_input_types(self) -> None:
         requests = []
 
         class Response:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {"embeddings": {"float": [[0.1, 0.2]]}}
+
+        class FakeClient:
             def __enter__(self):
                 return self
 
             def __exit__(self, *args):
                 return False
 
-            def read(self):
-                return json.dumps(
-                    {
-                        "data": [
-                            {"index": 0, "embedding": [0.1, 0.2]},
-                            {"index": 1, "embedding": [0.3, 0.4]},
-                        ]
-                    }
-                ).encode("utf-8")
+            def post(self, url, headers=None, json=None):
+                requests.append((url, headers, json))
+                return Response()
 
-        def fake_urlopen(request, timeout):
-            requests.append((request, timeout))
-            return Response()
+        with patch("integrations.cohere_client.httpx.Client", FakeClient):
+            client = CohereClient(api_key="test-key")
+            document_vector = client.embed_document("episode summary")
+            query_vector = client.embed_query("retrieval query")
 
-        with patch("integrations.voyage_client.urlopen", fake_urlopen):
-            client = VoyageClient(api_key="test-key", max_retries=0)
-            vectors = client.embed(["one", "two"], input_type="document")
-
-        self.assertEqual(vectors, [[0.1, 0.2], [0.3, 0.4]])
-        self.assertIn("voyage-4-lite", requests[0][0].data.decode("utf-8"))
+        self.assertEqual(document_vector, [0.1, 0.2])
+        self.assertEqual(query_vector, [0.1, 0.2])
+        self.assertEqual(len(requests), 2)
+        self.assertEqual(requests[0][2]["input_type"], "search_document")
+        self.assertEqual(requests[1][2]["input_type"], "search_query")
+        self.assertEqual(requests[0][2]["model"], "embed-v4.0")
+        self.assertEqual(requests[0][2]["texts"], ["episode summary"])
+        self.assertEqual(requests[1][2]["texts"], ["retrieval query"])
         self.assertEqual(
-            requests[0][0].headers["Authorization"],
+            requests[0][1]["Authorization"],
             "Bearer test-key",
         )
+
+    def test_cohere_client_surfaces_network_failures(self) -> None:
+        request = httpx.Request("POST", CohereClient.BASE_URL)
+
+        class FakeClient:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def post(self, url, headers=None, json=None):
+                raise httpx.ConnectError("connection refused", request=request)
+
+        with patch("integrations.cohere_client.httpx.Client", FakeClient):
+            client = CohereClient(api_key="test-key")
+            with self.assertRaises(CohereClientError) as ctx:
+                client.embed_query("retrieval query")
+
+        self.assertIn("Network error", str(ctx.exception))
+
+    def test_cohere_client_surfaces_http_failures(self) -> None:
+        request = httpx.Request("POST", CohereClient.BASE_URL)
+        error_response = httpx.Response(500, request=request, text="server exploded")
+
+        class Response:
+            def raise_for_status(self):
+                raise httpx.HTTPStatusError(
+                    "Internal Server Error",
+                    request=request,
+                    response=error_response,
+                )
+
+            def json(self):
+                return {"embeddings": {"float": [[0.1, 0.2]]}}
+
+        class FakeClient:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def post(self, url, headers=None, json=None):
+                return Response()
+
+        with patch("integrations.cohere_client.httpx.Client", FakeClient):
+            client = CohereClient(api_key="test-key")
+            with self.assertRaises(CohereClientError) as ctx:
+                client.embed_document("episode summary")
+
+        self.assertIn("HTTP error 500", str(ctx.exception))
+        self.assertIn("server exploded", str(ctx.exception))
+
+    def test_cohere_client_rejects_malformed_or_invalid_responses(self) -> None:
+        class Response:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                raise json.JSONDecodeError("invalid json", "doc", 0)
+
+        class FakeClient:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def post(self, url, headers=None, json=None):
+                return Response()
+
+        with patch("integrations.cohere_client.httpx.Client", FakeClient):
+            client = CohereClient(api_key="test-key")
+            with self.assertRaises(CohereClientError) as ctx:
+                client.embed_query("retrieval query")
+
+        self.assertIn("invalid JSON", str(ctx.exception))
+
+    def test_cohere_client_rejects_unexpected_response_shape(self) -> None:
+        class Response:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {"embeddings": {}}
+
+        class FakeClient:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def post(self, url, headers=None, json=None):
+                return Response()
+
+        with patch("integrations.cohere_client.httpx.Client", FakeClient):
+            client = CohereClient(api_key="test-key")
+            with self.assertRaises(CohereClientError) as ctx:
+                client.embed_document("episode summary")
+
+        self.assertIn("Unexpected response format", str(ctx.exception))
+
+    def test_cohere_client_fails_clearly_without_api_key(self) -> None:
+        with patch.dict(os.environ, {"COHERE_API_KEY": ""}, clear=False):
+            client = CohereClient()
+            with self.assertRaises(CohereClientError) as ctx:
+                client.embed_query("retrieval query")
+
+        self.assertIn("COHERE_API_KEY is not configured", str(ctx.exception))
 
     def test_qdrant_hybrid_request_contains_dense_sparse_rrf(self) -> None:
         requests = []

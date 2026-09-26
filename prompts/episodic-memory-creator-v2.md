@@ -28,6 +28,7 @@ When memory is warranted, extract one or more compact episodes covering only fut
 - discoveries, problems, or solutions
 - persistent preferences, habits, or patterns
 - important contextual information
+- corrections or retractions of prior memory
 
 Do not assume one session equals one episode. Separate distinct events when their subjects, times, decisions, or outcomes differ.
 
@@ -50,7 +51,25 @@ Plans are not completed actions.
 Possibilities are not facts.
 Temporal sequence does not prove causality.
 
-STEP 4 — TEMPORAL HANDLING
+STEP 4 — EXISTING MEMORY INTEGRATION
+
+You will be provided with a list of EXISTING EPISODES from memory. For each event you extract:
+
+1. Check if it CONTINUES or UPDATES an existing episode:
+   - Same project/feature/decision thread
+   - New state/change/outcome for the same subject
+   - If YES: set action="update", target_id=<existing_episode_id>
+   - Include the UPDATED full episode (not just the delta)
+
+2. Check if it CONTRADICTS or RETRACTS an existing episode:
+   - User explicitly says "we decided NOT to do X" or "that decision was wrong"
+   - If YES: set action="delete", target_id=<existing_episode_id>
+   - No episode payload needed for delete
+
+3. If it is a GENUINELY NEW event:
+   - set action="create", target_id=null
+
+STEP 5 — TEMPORAL HANDLING
 
 Never store relative expressions such as "yesterday", "today", "last night", or "recently" as the canonical event time.
 
@@ -74,6 +93,8 @@ EPISODE FIELDS
 - related: a LIST of related episode IDs (strings) when known, otherwise []. MUST be a JSON array of strings.
 - event_time: normalized event date/time/range when supported
 - evidence: source message references supporting the episode
+- action: "create" | "update" | "delete" (default: "create")
+- target_id: existing episode ID for update/delete, otherwise null
 
 SUMMARY RULES
 
@@ -99,6 +120,7 @@ Before returning an episode, verify:
 4. Relative time has been normalized when possible.
 5. State, change, and outcome are actually established.
 6. Separate events have not been incorrectly merged.
+7. For update/delete: target_id must reference an episode from the provided existing list.
 
 If uncertain, preserve uncertainty or omit the claim.
 

@@ -1,0 +1,31 @@
+[
+  {
+    "id": "2d91f19e-09b5-4f09-8ef4-85eed9dc3b58",
+    "timestamp": "2026-09-23T11:03:31.241178Z",
+    "action": "create",
+    "target_id": null,
+    "episode": {
+      "type": "family_health",
+      "summary": "User's grandmother was discharged from the hospital and is now at home.",
+      "state": "Grandmother is currently at home following hospital discharge.",
+      "change": "Status changed from hospitalized to discharged.",
+      "outcome": null,
+      "learned_lesson": null,
+      "importance": 0.7,
+      "confidence": 1.0,
+      "tags": [
+        "family",
+        "health",
+        "grandmother",
+        "hospital discharge"
+      ],
+      "related": [],
+      "event_time": null,
+      "evidence": [
+        "user_message_2"
+      ],
+      "action": "create",
+      "target_id": null
+    }
+  }
+]
