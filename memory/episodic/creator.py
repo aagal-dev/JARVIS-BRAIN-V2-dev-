@@ -1,3 +1,5 @@
+from typing import Any
+
 from integrations.base_agent import BaseAgent
 from schemas.episodic_memory import (
     ChatHistoryMessage,
