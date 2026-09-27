@@ -8,8 +8,8 @@ from agents.planner import build_planner_state, run_planner
 from core.orchestrator import run_orchestrator
 from core.registry.available_components import AVAILABLE_COMPONENTS
 from core.runtime_state_manager import RuntimeStateManager
-from research_subsystem import invoke_research_subsystem
-from research_subsystem.types import ResearchResult
+from subsystems.research_subsystem import invoke_research_subsystem
+from subsystems.research_subsystem.types import ResearchResult
 from memory.episodic.service import (
     EpisodicConsolidationResult,
     EpisodicMemoryService,

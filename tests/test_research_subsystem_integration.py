@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 from core.agentic_loop import JarvisBrain
-from research_subsystem.research_workflow import invoke_research_subsystem
-from research_subsystem.types import ResearchResult
+from subsystems.research_subsystem.research_workflow import (
+    invoke_research_subsystem,
+)
+from subsystems.research_subsystem.types import ResearchResult
 from schemas.agents.conversation_agent import ConversationAgentOutput
 from schemas.agents.planner_v2 import PlannerResult
 from schemas.orchestrator.orchestrator_v2 import (
