@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -8,7 +8,7 @@ class RuntimeStep(BaseModel):
 
     id: str
     step: str
-    result: str | None = None
+    result: str | dict[str, Any] | None = None
     status: Literal[
         "pending",
         "in_progress",

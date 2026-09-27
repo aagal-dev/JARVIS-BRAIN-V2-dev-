@@ -36,6 +36,12 @@ def build_conversation_agent_state(
 
     service_state = snapshot.model_dump()
   
+    step_results = [
+        step.result
+        for step in runtime_state.steps
+        if isinstance(step.result, dict)
+    ]
+
     return {
         "user_request": conversation_agent_handoff_state.user_request,
         "objective": conversation_agent_handoff_state.objective,
@@ -48,8 +54,12 @@ def build_conversation_agent_state(
         "runtime_state": runtime_state,
         "execution_context": {
             "actions": [],
-            "results": [],
-            "failures": [],
+            "results": step_results,
+            "failures": [
+                result
+                for result in step_results
+                if result.get("status") in {"failed", "partial"}
+            ],
         },
         "environmemt": {
           "time_and_celender": service_state

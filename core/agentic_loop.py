@@ -8,6 +8,8 @@ from agents.planner import build_planner_state, run_planner
 from core.orchestrator import run_orchestrator
 from core.registry.available_components import AVAILABLE_COMPONENTS
 from core.runtime_state_manager import RuntimeStateManager
+from research_subsystem import invoke_research_subsystem
+from research_subsystem.types import ResearchResult
 from memory.episodic.service import (
     EpisodicConsolidationResult,
     EpisodicMemoryService,
@@ -39,6 +41,9 @@ class JarvisBrain:
         planner: Callable[[PlannerState], PlannerResult] = run_planner,
         episodic_memory: EpisodicMemoryService | None = None,
         memory_retrieval: MemoryRetrieval | None = None,
+        research_subsystem: Callable[[str], ResearchResult] = (
+            invoke_research_subsystem
+        ),
     ):
         self.orchestrator = orchestrator
         self.available_components = AVAILABLE_COMPONENTS
@@ -53,6 +58,7 @@ class JarvisBrain:
         self.memory_retrieval = (
             memory_retrieval or self.episodic_memory.retrieval
         )
+        self.research_subsystem = research_subsystem
         self.last_memory_retrieval: MemoryRetrievalResult | None = None
         self.chat_history: list[ChatHistoryMessage] = []
         self.max_steps = max_steps
@@ -308,13 +314,78 @@ class JarvisBrain:
                         state=runtime_state.model_dump(),
                     )
   
-                for action in decision.actions:
+                for action_index, action in enumerate(decision.actions):
+                    runtime_state = self.runtime_state_manager.get()
+                    step_id = runtime_state.current_step_id
+
+                    if step_id is None:
+                        pending_step = next(
+                            (
+                                step
+                                for step in runtime_state.steps
+                                if step.status == "pending"
+                            ),
+                            None,
+                        )
+                        if pending_step is not None:
+                            step_id = pending_step.id
+                            runtime_state = (
+                                self.runtime_state_manager.set_current_step(step_id)
+                            )
+                        else:
+                            step_id = f"execution-{self.step}-{action_index + 1}"
+                            runtime_state = self.runtime_state_manager.add_step(
+                                RuntimeStep(
+                                    id=step_id,
+                                    step=f"Execute {action.component}",
+                                )
+                            )
+                            runtime_state = (
+                                self.runtime_state_manager.set_current_step(step_id)
+                            )
+
                     print(
                         f"\n[JARVIS BRAIN] ACTION"
                         f"\nType: {action.type}"
                         f"\nComponent: {action.component}"
                         f"\nProvided Goal: {action.input.goal}"
                     )
+
+                    try:
+                        if (
+                            action.type.value != "subsystem"
+                            or action.component != "research_subsystem"
+                        ):
+                            raise ValueError(
+                                f"Unsupported component action: "
+                                f"{action.type.value}/{action.component}"
+                            )
+
+                        component_result = self.research_subsystem(
+                            action.input.goal or action.input.user_request
+                        )
+                        if not isinstance(component_result, ResearchResult):
+                            raise TypeError(
+                                "Research subsystem returned an unexpected "
+                                "response type."
+                            )
+                        result_payload = component_result.model_dump(mode="json")
+                    except Exception as exc:
+                        result_payload = ResearchResult(
+                            status="failed",
+                            query=action.input.goal or action.input.user_request,
+                            errors=[f"Component execution failed: {exc}"],
+                        ).model_dump(mode="json")
+
+                    self.runtime_state_manager.update_step_result(
+                        step_id,
+                        result_payload,
+                    )
+                    self.runtime_state_manager.update_step_status(
+                        step_id,
+                        "completed",
+                    )
+                    runtime_state = self.runtime_state_manager.get()
   
           self.workflow_complete = True
   

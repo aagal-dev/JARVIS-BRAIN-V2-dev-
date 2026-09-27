@@ -112,12 +112,30 @@ class RuntimeStateManager:
         self._completed = False
         return self.get()
 
-    def update_step_result(self, step_id: str, result: str | None) -> RuntimeState:
+    def update_step_result(
+        self,
+        step_id: str,
+        result: str | dict[str, Any] | None,
+    ) -> RuntimeState:
         """Attach the grounded outcome of a step without changing its status."""
         state = self._require_state()
         step = self._find_step(step_id)
         step.result = result
         self._state = state
+        self._completed = False
+        return self.get()
+
+    def add_step(self, step: RuntimeStep | Mapping[str, Any]) -> RuntimeState:
+        """Add an execution step when a direct request is routed to a component."""
+        state = self._require_state()
+        runtime_step = (
+            step if isinstance(step, RuntimeStep) else RuntimeStep.model_validate(step)
+        )
+        if any(existing.id == runtime_step.id for existing in state.steps):
+            raise ValueError(f"Runtime step ID already exists: {runtime_step.id}")
+        state.steps.append(runtime_step)
+        self._state = state
+        self._validate_current_step()
         self._completed = False
         return self.get()
 
