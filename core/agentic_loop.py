@@ -243,8 +243,8 @@ class JarvisBrain:
             try:
               decision = self.orchestrator(
                 runtime_state=runtime_state.model_dump(),
-                    available_components=self.available_components,
-                )
+                available_components=self.available_components,
+              )
                 
             except Exception as exc:
                 self.workflow_complete = True
@@ -370,6 +370,9 @@ class JarvisBrain:
                                 "response type."
                             )
                         result_payload = component_result.model_dump(mode="json")
+
+                        print(f"\nSubsystem Result: \n{result_payload}")
+                      
                     except Exception as exc:
                         result_payload = ResearchResult(
                             status="failed",
