@@ -141,6 +141,10 @@ conversation and memory content as tool arguments.
 8. "next_step" SEMANTICS
 
 - "next_step" MUST be present in every return, with appropriate following values.
+- "next_step" is a scalar string, never an object. Return exactly "execute",
+  "respond", or "stop".
+- Keep "actions" and "conversation_agent_handoff" as top-level fields; do not
+  nest them inside "next_step".
 
 "execute"
 
@@ -272,6 +276,21 @@ Do not silently alter the requested outcome merely because another approach is e
 Return only a valid "OrchestratorResult".
 
 The schema is authoritative.
+
+The output is a flat JSON object. For example, a response handoff has this shape:
+
+{
+  "next_step": "respond",
+  "conversation_agent_handoff": {
+    "user_request": "the original request",
+    "objective": "what the Conversation Agent should accomplish"
+  },
+  "actions": []
+}
+
+For execution, set "next_step" to the scalar string "execute", put tool calls in
+the top-level "actions" array, and set "conversation_agent_handoff" to null.
+Never return {"next_step": {"type": "respond", ...}}.
 
 Transition invariants
 

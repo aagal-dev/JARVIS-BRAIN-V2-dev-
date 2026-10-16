@@ -63,8 +63,8 @@ class OrchestratorResult(BaseModel):
     next_step: Optional[OrchestratorNextStep] = Field(
         default=None,
         description=(
-            "The single best next workflow transition: execute MCP tool work, "
-            "respond through the Conversation Agent, or terminate/suspend."
+            "A scalar string containing exactly one workflow transition: "
+            "'execute', 'respond', or 'stop'. Do not return an object."
         ),
     )
 
@@ -90,6 +90,44 @@ class OrchestratorResult(BaseModel):
             "populate this as an orchestration decision."
         ),
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_nested_transition(cls, values: Any) -> Any:
+        """Flatten a nested transition object into the canonical result shape."""
+        if not isinstance(values, dict):
+            return values
+
+        transition = values.get("next_step")
+        if not isinstance(transition, dict):
+            return values
+
+        transition_type = transition.get("type")
+        if transition_type not in {step.value for step in OrchestratorNextStep}:
+            return values
+
+        allowed_fields = {
+            "type",
+            "actions",
+            "conversation_agent_handoff",
+            "error",
+        }
+        if transition.keys() - allowed_fields:
+            return values
+
+        normalized = dict(values)
+        normalized["next_step"] = transition_type
+        for field in ("actions", "conversation_agent_handoff", "error"):
+            if field not in transition:
+                continue
+            if field in normalized and normalized[field] != transition[field]:
+                raise ValueError(
+                    f"Conflicting '{field}' values in nested and top-level "
+                    "orchestrator output."
+                )
+            normalized[field] = transition[field]
+
+        return normalized
 
     @model_validator(mode="after")
     def validate_transition(self):
