@@ -4,15 +4,17 @@ from agents.planner import (
 
 )
 
-from core.registry.available_components import AVAILABLE_COMPONENTS
+from configs.mcp_servers import MCP_SERVERS
+from packages.MCP import MCPClient
 
 user = "what is the new AI model gpt 6 astra can do?"
 
-agent_state = build_planner_state(
-  user_request=user,
-  available_components=AVAILABLE_COMPONENTS
-)
+with MCPClient(MCP_SERVERS) as mcp_client:
+  agent_state = build_planner_state(
+    user_request=user,
+    available_tools=mcp_client.tools(),
+  )
 
-response = run_planner(agent_state)
+  response = run_planner(agent_state)
 
 print(response)

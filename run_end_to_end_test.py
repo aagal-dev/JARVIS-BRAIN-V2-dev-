@@ -12,7 +12,7 @@ def dummy_planner(state: PlannerState) -> PlannerResult:
     return PlannerResult(mode="direct", objective=None, steps=[], error=None)
 
 # Dummy orchestrator that always asks the conversation agent to respond
-def dummy_orchestrator(runtime_state, available_components):
+def dummy_orchestrator(runtime_state, available_tools):
     # runtime_state is a dict representation
     user_req = runtime_state.get("user_request", "")
     handoff = ConversationAgentHandoff(user_request=user_req, objective="")

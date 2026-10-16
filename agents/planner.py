@@ -17,7 +17,7 @@ planner_agent = BaseAgent(
 
 def build_planner_state(
     user_request: str,
-    available_components: dict[str, object],
+    available_tools: dict[str, object],
     recent_conversations: list[dict[str, str]] | None = None,
     relevant_context: PlannerRelevantContext | None = None,
     retrieval_errors: list[str] | None = None,
@@ -31,7 +31,7 @@ def build_planner_state(
             "learned_knowledge": [],
         },
         "environment_context": {},
-        "available_components": available_components,
+        "available_tools": available_tools,
         "retrieval_errors": list(retrieval_errors or []),
     }
 

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -14,70 +14,6 @@ class OrchestratorNextStep(str, Enum):
     STOP = "stop"
 
 
-class ActionType(str, Enum):
-    AGENT = "agent"
-    SUBSYSTEM = "subsystem"
-
-
-# ============================================================
-# Action Context
-# ============================================================
-
-class ActionContext(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    as_of: Optional[str] = Field(
-        default=None,
-        description=(
-            "Temporal reference relevant to the action when the task depends "
-            "on a specific date or time; otherwise null."
-        ),
-    )
-
-    conversation_summary: str = Field(
-        default="",
-        description=(
-            "Concise summary of conversation information relevant to executing "
-            "this action. Do not copy the full conversation."
-        ),
-    )
-
-    relevant_prior_context: list[str] = Field(
-        default_factory=list,
-        description=(
-            "Relevant prior facts, findings, decisions, or context needed by "
-            "the target component. Keep this task-specific and grounded."
-        ),
-    )
-
-
-# ============================================================
-# Action Input
-# ============================================================
-
-class ActionInput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    user_request: str = Field(
-        description="The original user request relevant to this action."
-    )
-
-    goal: str = Field(
-        description=(
-            "A concise, grounded statement of what the target component must "
-            "accomplish now."
-        ),
-    )
-
-    context: ActionContext = Field(
-        default_factory=ActionContext,
-        description=(
-            "Task-specific context required to execute the action. "
-            "Do not duplicate unnecessary runtime state."
-        ),
-    )
-
-
 # ============================================================
 # Orchestrator Action
 # ============================================================
@@ -85,19 +21,16 @@ class ActionInput(BaseModel):
 class OrchestratorAction(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    type: ActionType = Field(
-        description="Whether the target component is an agent or subsystem."
-    )
-
-    component: str = Field(
+    tool_name: str = Field(
         description=(
-            "Exact registered component name. Must match a component listed "
-            "in available_components."
+            "Exact namespaced MCP tool name from available_tools, in "
+            "'server__tool' form."
         ),
     )
 
-    input: ActionInput = Field(
-        description="Structured input required by the selected component."
+    arguments: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Arguments matching the selected tool's input_schema exactly.",
     )
 
 
@@ -130,7 +63,7 @@ class OrchestratorResult(BaseModel):
     next_step: Optional[OrchestratorNextStep] = Field(
         default=None,
         description=(
-            "The single best next workflow transition: execute component work, "
+            "The single best next workflow transition: execute MCP tool work, "
             "respond through the Conversation Agent, or terminate/suspend."
         ),
     )
@@ -146,7 +79,7 @@ class OrchestratorResult(BaseModel):
     actions: list[OrchestratorAction] = Field(
         default_factory=list,
         description=(
-            "Sequential component work to perform when next_step is execute."
+            "Sequential MCP tool calls to perform when next_step is execute."
         ),
     )
 

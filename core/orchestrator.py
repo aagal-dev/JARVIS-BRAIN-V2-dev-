@@ -15,7 +15,7 @@ orchestrator = BaseAgent(
 
 def run_orchestrator(
   runtime_state: RuntimeState | dict,
-  available_components: dict,
+  available_tools: dict,
 ) -> OrchestratorResult:
 
   state = {
@@ -24,7 +24,7 @@ def run_orchestrator(
       if isinstance(runtime_state, RuntimeState)
       else RuntimeState.model_validate(runtime_state).model_dump()
     ),
-    "available_components": available_components
+    "available_tools": available_tools
   }
 
   response = orchestrator.invoke(state)

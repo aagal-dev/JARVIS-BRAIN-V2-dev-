@@ -1,4 +1,5 @@
-from typing import Any, Callable
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from agents.conversation_agent import (
     build_conversation_agent_state,
@@ -6,10 +7,9 @@ from agents.conversation_agent import (
 )
 from agents.planner import build_planner_state, run_planner
 from core.orchestrator import run_orchestrator
-from core.registry.available_components import AVAILABLE_COMPONENTS
 from core.runtime_state_manager import RuntimeStateManager
-from subsystems.research_subsystem import invoke_research_subsystem
-from subsystems.research_subsystem.types import ResearchResult
+from configs.mcp_servers import MCP_SERVERS
+from packages.MCP import MCPClient, MCPServerConfig
 from memory.episodic.service import (
     EpisodicConsolidationResult,
     EpisodicMemoryService,
@@ -41,12 +41,10 @@ class JarvisBrain:
         planner: Callable[[PlannerState], PlannerResult] = run_planner,
         episodic_memory: EpisodicMemoryService | None = None,
         memory_retrieval: MemoryRetrieval | None = None,
-        research_subsystem: Callable[[str], ResearchResult] = (
-            invoke_research_subsystem
-        ),
+        mcp_servers: Sequence[MCPServerConfig] | None = None,
     ):
         self.orchestrator = orchestrator
-        self.available_components = AVAILABLE_COMPONENTS
+        self.mcp_servers = tuple(MCP_SERVERS if mcp_servers is None else mcp_servers)
         self.runtime_state_manager = runtime_state_manager or RuntimeStateManager()
         self.conversation_agent = conversation_agent
         self.planner = planner
@@ -58,7 +56,6 @@ class JarvisBrain:
         self.memory_retrieval = (
             memory_retrieval or self.episodic_memory.retrieval
         )
-        self.research_subsystem = research_subsystem
         self.last_memory_retrieval: MemoryRetrievalResult | None = None
         self.chat_history: list[ChatHistoryMessage] = []
         self.max_steps = max_steps
@@ -71,6 +68,7 @@ class JarvisBrain:
 
     # MAIN ENTRY POINT
     def run(self, user_request: Any = None) -> JarvisBrainResult:
+        mcp_client: MCPClient | None = None
         try:
           # starting all threaded services
           service_manager.start_all()
@@ -80,6 +78,18 @@ class JarvisBrain:
             return JarvisBrainResult(
                 status="failed",
                 error="user_request must be a non-empty string.",
+                state={},
+            )
+
+          mcp_client = MCPClient(self.mcp_servers)
+          try:
+            mcp_client.connect()
+            available_tools = mcp_client.tools()
+          except Exception as exc:
+            self.workflow_complete = True
+            return JarvisBrainResult(
+                status="failed",
+                error=f"MCP connection or discovery failed: {str(exc)[:2000]}",
                 state={},
             )
 
@@ -113,7 +123,7 @@ class JarvisBrain:
 
           planner_state = build_planner_state(
              user_request=user_request,
-             available_components=self.available_components,
+              available_tools=available_tools,
               recent_conversations=self.chat_history[:-1],
               relevant_context=retrieved_context,
               retrieval_errors=(
@@ -243,7 +253,7 @@ class JarvisBrain:
             try:
               decision = self.orchestrator(
                 runtime_state=runtime_state.model_dump(),
-                available_components=self.available_components,
+                available_tools=available_tools,
               )
                 
             except Exception as exc:
@@ -337,7 +347,7 @@ class JarvisBrain:
                             runtime_state = self.runtime_state_manager.add_step(
                                 RuntimeStep(
                                     id=step_id,
-                                    step=f"Execute {action.component}",
+                                    step=f"Execute {action.tool_name}",
                                 )
                             )
                             runtime_state = (
@@ -346,39 +356,26 @@ class JarvisBrain:
 
                     print(
                         f"\n[JARVIS BRAIN] ACTION"
-                        f"\nType: {action.type}"
-                        f"\nComponent: {action.component}"
-                        f"\nProvided Goal: {action.input.goal}"
+                        f"\nMCP tool: {action.tool_name}"
                     )
 
                     try:
-                        if (
-                            action.type.value != "subsystem"
-                            or action.component != "research_subsystem"
-                        ):
-                            raise ValueError(
-                                f"Unsupported component action: "
-                                f"{action.type.value}/{action.component}"
-                            )
-
-                        component_result = self.research_subsystem(
-                            action.input.goal or action.input.user_request
+                        tool_result = mcp_client.call_tool(
+                            action.tool_name,
+                            action.arguments,
                         )
-                        if not isinstance(component_result, ResearchResult):
-                            raise TypeError(
-                                "Research subsystem returned an unexpected "
-                                "response type."
-                            )
-                        result_payload = component_result.model_dump(mode="json")
-
-                        print(f"\nSubsystem Result: \n{result_payload}")
+                        result_payload = {
+                            "tool_name": action.tool_name,
+                            **tool_result.agent_view(),
+                        }
+                        print(f"\nMCP Tool Result: \n{result_payload}")
                       
                     except Exception as exc:
-                        result_payload = ResearchResult(
-                            status="failed",
-                            query=action.input.goal or action.input.user_request,
-                            errors=[f"Component execution failed: {exc}"],
-                        ).model_dump(mode="json")
+                        result_payload = {
+                            "tool_name": action.tool_name,
+                            "ok": False,
+                            "error": f"MCP tool execution failed: {str(exc)[:2000]}",
+                        }
 
                     self.runtime_state_manager.update_step_result(
                         step_id,
@@ -400,8 +397,12 @@ class JarvisBrain:
           )
 
         finally:
-          # stopping all threaded services
-          service_manager.stop_all()
+          try:
+            if mcp_client is not None:
+              mcp_client.close()
+          finally:
+            # stopping all threaded services
+            service_manager.stop_all()
 
     def end_session(self) -> EpisodicConsolidationResult:
         """Consolidate the temporary chat history once the session ends."""

@@ -66,5 +66,5 @@ class PlannerState(TypedDict):
     recent_conversations: list[dict[str, str]]
     relevant_context: PlannerRelevantContext
     environment_context: dict[str, Any]
-    available_components: dict[str, Any]
+    available_tools: dict[str, Any]
     retrieval_errors: list[str]

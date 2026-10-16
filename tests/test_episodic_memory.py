@@ -164,7 +164,7 @@ class EpisodicBrainIntegrationTests(unittest.TestCase):
             def planner(state):
                 return PlannerResult(mode="planned", objective="Answer the request", steps=[])
 
-            def orchestrator(runtime_state, available_components):
+            def orchestrator(runtime_state, available_tools):
                 return OrchestratorResult(
                     next_step="respond",
                     conversation_agent_handoff=ConversationAgentHandoff(

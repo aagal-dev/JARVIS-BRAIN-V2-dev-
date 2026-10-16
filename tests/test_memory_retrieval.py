@@ -302,7 +302,7 @@ class RetrievalWorkflowTests(unittest.TestCase):
             planner_states.append(state)
             return PlannerResult(mode="planned", objective="Answer with relevant prior context", steps=[{"id": "step-1", "step": "test", "status": "pending"}])
 
-        def orchestrator(runtime_state, available_components):
+        def orchestrator(runtime_state, available_tools):
             return OrchestratorResult(
                 next_step="respond",
                 conversation_agent_handoff=ConversationAgentHandoff(

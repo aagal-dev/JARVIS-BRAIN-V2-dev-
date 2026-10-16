@@ -1,18 +1,10 @@
 from __future__ import annotations
 
-from typing import Any
-
-from core.agentic_loop import JarvisBrain
 from subsystems.research_subsystem.research_workflow import (
     invoke_research_subsystem,
 )
 from subsystems.research_subsystem.types import ResearchResult
-from schemas.agents.conversation_agent import ConversationAgentOutput
-from schemas.agents.planner_v2 import PlannerResult
-from schemas.orchestrator.orchestrator_v2 import (
-    ConversationAgentHandoff,
-    OrchestratorResult,
-)
+from subsystems.research_subsystem.mcp_server import research
 
 
 class StubConnector:
@@ -77,132 +69,25 @@ def test_research_pipeline_returns_typed_result_without_raw_connector_payloads()
     assert "results" not in result.model_dump()
 
 
-def test_brain_executes_research_and_hands_structured_result_to_conversation() -> None:
-    observed_conversation_state: dict[str, Any] = {}
-    observed_orchestrator_states: list[dict[str, Any]] = []
-    orchestrator_calls = 0
-    research_result = ResearchResult(
+def test_research_mcp_tool_adapts_subsystem_result_to_json() -> None:
+    result = research("")
+
+    assert result["status"] == "failed"
+    assert result["query"] == ""
+    assert result["errors"] == ["Research query must be a non-empty string."]
+
+
+def test_research_mcp_tool_serializes_a_successful_subsystem_result(
+    monkeypatch,
+) -> None:
+    expected = ResearchResult(
         status="success",
-        query="Research the test topic",
+        query="Explain the test topic",
         synthesis={"key_findings": ["The finding is grounded."]},
     )
-
-    def fake_planner(state: dict[str, Any]) -> PlannerResult:
-        return PlannerResult(
-            mode="planned",
-            objective="Research the test topic",
-            steps=[
-                {
-                    "id": "step-1",
-                    "step": "Research the topic",
-                    "status": "pending",
-                }
-            ],
-        )
-
-    def fake_orchestrator(runtime_state, available_components):
-        nonlocal orchestrator_calls
-        orchestrator_calls += 1
-        observed_orchestrator_states.append(runtime_state)
-        if orchestrator_calls == 1:
-            return OrchestratorResult(
-                next_step="execute",
-                actions=[
-                    {
-                        "type": "subsystem",
-                        "component": "research_subsystem",
-                        "input": {
-                            "user_request": "Research the test topic",
-                            "goal": "Research the test topic",
-                        },
-                    }
-                ],
-            )
-        return OrchestratorResult(
-            next_step="respond",
-            conversation_agent_handoff=ConversationAgentHandoff(
-                user_request="Research the test topic",
-                objective="Explain the research finding.",
-            ),
-        )
-
-    def fake_conversation_agent(state):
-        observed_conversation_state.update(state)
-        return ConversationAgentOutput(
-            response="The finding is grounded.",
-            response_type="answer",
-        )
-
-    brain = JarvisBrain(
-        orchestrator=fake_orchestrator,
-        planner=fake_planner,
-        conversation_agent=fake_conversation_agent,
-        research_subsystem=lambda query: research_result,
+    monkeypatch.setattr(
+        "subsystems.research_subsystem.mcp_server.invoke_research_subsystem",
+        lambda query: expected,
     )
 
-    result = brain.run("Research the test topic")
-
-    assert result.status == "success"
-    assert result.state["steps"][0]["status"] == "completed"
-    assert result.state["steps"][0]["result"] == research_result.model_dump(
-        mode="json"
-    )
-    assert observed_conversation_state["execution_context"]["results"] == [
-        research_result.model_dump(mode="json")
-    ]
-    assert observed_orchestrator_states[1]["steps"][0]["result"] == (
-        research_result.model_dump(mode="json")
-    )
-    assert orchestrator_calls == 2
-
-
-def test_brain_attaches_research_result_for_direct_mode_execution() -> None:
-    research_result = ResearchResult(
-        status="success",
-        query="Look up the direct topic",
-        synthesis="Direct-mode synthesis.",
-    )
-    orchestrator_calls = 0
-
-    def fake_orchestrator(runtime_state, available_components):
-        nonlocal orchestrator_calls
-        orchestrator_calls += 1
-        if orchestrator_calls == 1:
-            return OrchestratorResult(
-                next_step="execute",
-                actions=[
-                    {
-                        "type": "subsystem",
-                        "component": "research_subsystem",
-                        "input": {
-                            "user_request": "Look up the direct topic",
-                            "goal": "Look up the direct topic",
-                        },
-                    }
-                ],
-            )
-        return OrchestratorResult(
-            next_step="respond",
-            conversation_agent_handoff=ConversationAgentHandoff(
-                user_request="Look up the direct topic",
-                objective="Share the research result.",
-            ),
-        )
-
-    brain = JarvisBrain(
-        orchestrator=fake_orchestrator,
-        planner=lambda state: PlannerResult(mode="direct"),
-        conversation_agent=lambda state: ConversationAgentOutput(
-            response="Direct result.",
-            response_type="answer",
-        ),
-        research_subsystem=lambda query: research_result,
-    )
-
-    result = brain.run("Look up the direct topic")
-
-    assert result.status == "success"
-    assert result.state["steps"][0]["id"] == "execution-1-1"
-    assert result.state["steps"][0]["result"] == research_result.model_dump(
-        mode="json"
-    )
+    assert research("Explain the test topic") == expected.model_dump(mode="json")

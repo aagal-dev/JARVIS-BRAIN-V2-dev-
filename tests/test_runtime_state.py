@@ -146,7 +146,7 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
         )
 
         with patch("core.orchestrator.orchestrator", StubOrchestrator()):
-            run_orchestrator(runtime_state, available_components={})
+            run_orchestrator(runtime_state, available_tools={})
 
         self.assertEqual(
             captured_state["runtime_state"]["steps"][0]["result"],
@@ -202,7 +202,7 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
         observed_runtime_states: list[dict] = []
         observed_handoffs: list[tuple[str, str]] = []
 
-        def fake_orchestrator(runtime_state, available_components):
+        def fake_orchestrator(runtime_state, available_tools):
             observed_runtime_states.append(runtime_state)
             return OrchestratorResult(
                 next_step="respond",
@@ -275,7 +275,7 @@ class BrainRuntimeIntegrationTests(unittest.TestCase):
         self.assertTrue(brain.runtime_state_manager.is_complete)
 
     def test_orchestrator_error_is_returned_without_name_error(self) -> None:
-        def failing_orchestrator(runtime_state, available_components):
+        def failing_orchestrator(runtime_state, available_tools):
             return OrchestratorResult(
                 next_step="stop",
                 error="Orchestrator unavailable",

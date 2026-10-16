@@ -126,7 +126,7 @@ class RuntimeStateManager:
         return self.get()
 
     def add_step(self, step: RuntimeStep | Mapping[str, Any]) -> RuntimeState:
-        """Add an execution step when a direct request is routed to a component."""
+        """Add an execution step when a direct request invokes an MCP tool."""
         state = self._require_state()
         runtime_step = (
             step if isinstance(step, RuntimeStep) else RuntimeStep.model_validate(step)
