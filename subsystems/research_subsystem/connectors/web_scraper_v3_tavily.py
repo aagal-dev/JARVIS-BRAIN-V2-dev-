@@ -15,6 +15,7 @@ import os
 
 import requests
 import trafilatura
+from trafilatura.downloads import fetch_response
 
 
 class WebScraperConnector(BaseConnector):
@@ -24,7 +25,9 @@ class WebScraperConnector(BaseConnector):
 
     SEARCH_TIMEOUT = 15
     MAX_URLS = 5
-    WORKERS = 2
+    # Trafilatura's shared urllib3 pool has maxsize=1; keep its crawls
+    # sequential to avoid discarding pooled connections under concurrency.
+    WORKERS = 1
     MAX_TEXT = 40_000
 
     HEADERS = {
@@ -490,15 +493,30 @@ class WebScraperConnector(BaseConnector):
         final_url = url
 
         try:
-            html_text = trafilatura.fetch_url(url)
+            response = fetch_response(url, decode=True)
+            if response is None:
+                return cls._failed_page(
+                    url, final_url, title, "download returned no response"
+                )
+
+            final_url = response.url or url
+            if response.status != 200:
+                return cls._failed_page(
+                    url,
+                    final_url,
+                    title,
+                    f"HTTP {response.status}",
+                )
+
+            html_text = response.html
             if not html_text:
                 return cls._failed_page(
-                    url, final_url, title, "fetch_url returned no HTML"
+                    url, final_url, title, "response returned no HTML"
                 )
 
             text = trafilatura.extract(
                 html_text,
-                url=url,
+                url=final_url,
                 output_format="markdown",
                 favor_recall=True,
                 include_comments=False,
@@ -516,7 +534,7 @@ class WebScraperConnector(BaseConnector):
                 )
 
             quality = cls._quality(text)
-            metadata = cls._metadata(html_text, url)
+            metadata = cls._metadata(html_text, final_url)
             title = (
                 metadata.get("title")
                 or title
