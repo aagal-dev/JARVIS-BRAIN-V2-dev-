@@ -23,8 +23,8 @@ class WebScraperConnector(BaseConnector):
     TAVILY_SEARCH = "https://api.tavily.com/search"
 
     SEARCH_TIMEOUT = 15
-    MAX_URLS = 10
-    WORKERS = 5
+    MAX_URLS = 5
+    WORKERS = 2
     MAX_TEXT = 40_000
 
     HEADERS = {

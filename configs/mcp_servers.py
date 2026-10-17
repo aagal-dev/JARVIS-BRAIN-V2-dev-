@@ -18,5 +18,6 @@ MCP_SERVERS: tuple[MCPServerConfig, ...] = (
             args=("-m", "subsystems.research_subsystem.mcp_server"),
             cwd=str(PROJECT_ROOT),
         ),
+        timeout=600.0
     ),
 )

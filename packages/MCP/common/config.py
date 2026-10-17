@@ -83,7 +83,7 @@ class SessionFactoryTransport:
 class MCPServerConfig:
     name: str
     transport: StdioTransport | StreamableHTTPTransport | SessionFactoryTransport
-    timeout: float = 30.0
+    timeout: float = 600.0
 
     def __post_init__(self) -> None:
         if not self.name or "__" in self.name or not self.name.replace("_", "").isalnum():

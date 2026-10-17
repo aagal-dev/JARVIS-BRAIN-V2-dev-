@@ -144,6 +144,8 @@ class JarvisBrain:
                  error=f"Planner failure: {str(exc)[:2000]}",
                  state={},
              )
+
+             #return plan
           
           # Planner exceptions
           if not isinstance(plan, PlannerResult):
